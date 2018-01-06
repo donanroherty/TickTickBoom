@@ -1,0 +1,37 @@
+
+
+#include "TTBGameState.h"
+#include "Runtime/Engine/Classes/Engine/World.h"
+#include "TTBHud.h"
+
+ATTBGameState::ATTBGameState()
+{
+	bIsPaused = false;
+}
+
+void ATTBGameState::TogglePauseGame()
+{
+	bIsPaused = !bIsPaused;
+
+	APlayerController* const PC = Cast<APlayerController>(GEngine->GetFirstLocalPlayerController(GetWorld()));
+	
+	if (PC)
+	{
+		PC->SetPause(bIsPaused);
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Got here!!!"));
+
+		ATTBHud* const Hud = Cast<ATTBHud>(PC->GetHUD());
+
+		
+		if (Hud) {
+			if (bIsPaused)
+			{
+				Hud->OpenPauseMenu();
+			}
+			else
+			{
+				Hud->ClosePauseMenu();
+			}
+		}
+	}
+}

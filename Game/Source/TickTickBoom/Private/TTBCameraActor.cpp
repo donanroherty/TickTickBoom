@@ -1,10 +1,10 @@
 
 
-#include "TTB_CameraActor.h"
+#include "TTBCameraActor.h"
 
 
 // Sets default values
-ATTB_CameraActor::ATTB_CameraActor()
+ATTBCameraActor::ATTBCameraActor()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -12,14 +12,14 @@ ATTB_CameraActor::ATTB_CameraActor()
 }
 
 // Called when the game starts or when spawned
-void ATTB_CameraActor::BeginPlay()
+void ATTBCameraActor::BeginPlay()
 {
 	Super::BeginPlay();
 	
 }
 
 // Called every frame
-void ATTB_CameraActor::Tick(float DeltaTime)
+void ATTBCameraActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
