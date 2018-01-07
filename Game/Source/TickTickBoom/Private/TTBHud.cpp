@@ -2,6 +2,12 @@
 
 #include "TTBHud.h"
 #include "UserWidget.h"
+#include "Runtime/CoreUObject/Public/UObject/ConstructorHelpers.h"
+
+
+ATTBHud::ATTBHud()
+{
+}
 
 void ATTBHud::BeginPlay()
 {
@@ -9,18 +15,14 @@ void ATTBHud::BeginPlay()
 	{
 		ShortCircuitWidget = CreateWidget<UUserWidget>(GetWorld(), ShortCircuitWidgetClass);
 		if (ShortCircuitWidget)
-		{
 			ShortCircuitWidget->AddToViewport();
-		}
 	}
 
 	if(HighScoreWidgetClass)
 	{
 		HighScoreWidget = CreateWidget<UUserWidget>(GetWorld(), HighScoreWidgetClass);
 		if (HighScoreWidget)
-		{
 			HighScoreWidget->AddToViewport();
-		}
 	}
 }
 
@@ -29,17 +31,13 @@ void ATTBHud::OpenPauseMenu()
 	PauseWidget = CreateWidget<UUserWidget>(GetWorld(), PauseWidgetClass);
 
 	if (PauseWidget)
-	{
 		PauseWidget->AddToViewport();
-	}
 }
 
 void ATTBHud::ClosePauseMenu()
 {
 	if (PauseWidget)
-	{
 		PauseWidget->RemoveFromParent();
-	}
 }
 
 void ATTBHud::ShowTutorial()
@@ -48,9 +46,7 @@ void ATTBHud::ShowTutorial()
 	{
 		TutorialWidget = CreateWidget<UUserWidget>(GetWorld(), TutorialWidgetClass);
 		if (TutorialWidget)
-		{
 			TutorialWidget->AddToViewport();
-		}
 	}
 }
 
@@ -60,9 +56,7 @@ void ATTBHud::OnStageComplete()
 	{
 		StageCompleteWidget = CreateWidget<UUserWidget>(GetWorld(), StageCompleteWidgetClass);
 		if (StageCompleteWidget)
-		{
 			StageCompleteWidget->AddToViewport();
-		}
 	}
 }
 
@@ -72,9 +66,7 @@ void ATTBHud::OnDeath()
 	{
 		DeathMenuWidget = CreateWidget<UUserWidget>(GetWorld(), DeathMenuWidgetClass);
 		if (DeathMenuWidget)
-		{
 			DeathMenuWidget->AddToViewport();
-		}
 	}
 }
 
@@ -84,9 +76,7 @@ void ATTBHud::OnCycleComplete()
 	{
 		DisarmWidget = CreateWidget<UUserWidget>(GetWorld(), DisarmWidgetClass);
 		if (DisarmWidget)
-		{
 			DisarmWidget->AddToViewport();
-		}
 	}
 }
 
@@ -96,9 +86,7 @@ void ATTBHud::OnGameComplete()
 	{
 		GameCompleteWidget = CreateWidget<UUserWidget>(GetWorld(), GameCompleteWidgetClass);
 		if (GameCompleteWidget)
-		{
 			GameCompleteWidget->AddToViewport();
-		}
 	}
 }
 
@@ -108,8 +96,6 @@ void ATTBHud::BeginCountdown(int32 CountdownTime)
 	{
 		CountdownWidget = CreateWidget<UUserWidget>(GetWorld(), CountdownWidgetClass);
 		if (CountdownWidget)
-		{
 			CountdownWidget->AddToViewport();
-		}
 	}
 }

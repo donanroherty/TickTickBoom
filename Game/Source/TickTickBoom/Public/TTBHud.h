@@ -14,8 +14,11 @@ class ATTBHud : public AHUD
 {
 	GENERATED_BODY()
 
+	ATTBHud();
+
 	public:
 
+	/* Widget classes */
 	UPROPERTY(EditDefaultsOnly)
 		TSubclassOf<class UUserWidget> PauseWidgetClass;
 	UPROPERTY(EditDefaultsOnly)
@@ -35,7 +38,7 @@ class ATTBHud : public AHUD
 	UPROPERTY(EditDefaultsOnly)
 		TSubclassOf<class UUserWidget> GameCompleteWidgetClass;
 
-
+	/* Spawned Widgets */
 	UPROPERTY(BlueprintReadOnly)
 		class UUserWidget* PauseWidget;
 	UPROPERTY(BlueprintReadOnly)
@@ -65,25 +68,31 @@ class ATTBHud : public AHUD
 	UFUNCTION(BlueprintCallable)
 	void ClosePauseMenu();
 	
+	/* Shows tutorial widget on screen */
 	UFUNCTION(BlueprintCallable)
-		void ShowTutorial();
+	void ShowTutorial();
 
+	/* Shows stage complete widget on screen */
 	UFUNCTION(BlueprintCallable)
-		void OnStageComplete();
+	void OnStageComplete();
 
+	/* Shows death widget on screen */
 	UFUNCTION(BlueprintCallable)
-		void OnDeath();
+	void OnDeath();
 
+	/* Shows disarm widget on screen */
 	UFUNCTION(BlueprintCallable)
-		void OnCycleComplete();
+	void OnCycleComplete();
 
+	/* Shows game complete widget on screen */
 	UFUNCTION(BlueprintCallable)
-		void OnGameComplete();
+	void OnGameComplete();
 
+	/* Shows countdown widget on screen and feeds it countdown time */
 	UFUNCTION(BlueprintCallable)
-		void BeginCountdown(int32 CountdownTime);
+	void BeginCountdown(int32 CountdownTime);
 
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
-		void UpdateHighScoreWidget();
+	void UpdateHighScoreWidget();
 };
