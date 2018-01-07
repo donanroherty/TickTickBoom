@@ -32,6 +32,23 @@ struct FGameboardData : public FTableRowBase
 		float TimeScale;
 };
 
+USTRUCT(BlueprintType)
+struct FButtonGrid
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	TArray<class ATTBButton*> Rows;
+};
+
+UENUM(BlueprintType)
+enum class EBoardState : uint8
+{
+	BS_PreCycle		UMETA(DisplayName = "PreCycle"),
+	BS_Cycle 		UMETA(DisplayName = "Cycle"),
+	BS_PostCycle	UMETA(DisplayName = "PostCycle")
+};
+
 UCLASS()
 class TICKTICKBOOM_API ATTBGameBoard : public AActor
 {
@@ -41,6 +58,37 @@ public:
 	/* Data used to build the gameboard and ruleset */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta=(ExposeOnSpawn="true"))
 	FGameboardData GameboardData;
+
+	/* The safe button the player should track and press */
+	UPROPERTY(BlueprintReadWrite)
+		class ATTBButton* SafeButton;
+
+	UPROPERTY(BlueprintReadWrite)
+		bool bBoardIsActive;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
+		float ButtonSpacing;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
+		float ButtonHeight;
+
+	UPROPERTY(BlueprintReadWrite)
+		int32 SafeButtonChoiceIterations;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
+		int32 CountdownSeconds;
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
+		int32 SafeButtonCycleBias;
+
+	UPROPERTY(BlueprintReadWrite)
+		EBoardState BoardState;
+
+	UPROPERTY(BlueprintReadWrite)
+		TArray<class ATTBGate*> Gates;
+
+	UPROPERTY(BlueprintReadWrite)
+		TArray<FButtonGrid> ButtonsGrid;
 
 
 	/* Called when the button grid is updated */
@@ -68,13 +116,13 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 
-	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	UFUNCTION(BlueprintCallable)
 		void OnShortCircuit();
 
-	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	UFUNCTION(BlueprintCallable)
 		void ActivateBoard();
 
-	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	UFUNCTION(BlueprintCallable)
 		void DeactivateBoard();
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
@@ -106,4 +154,13 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 		void Explode();
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
+		float GetBoardWidth();
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
+		float GetBoardLength();
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
+		float GetGameboardTimeScale();
 };
