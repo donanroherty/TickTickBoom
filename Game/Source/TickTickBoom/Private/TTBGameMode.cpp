@@ -178,5 +178,4 @@ ATTBGameBoard * ATTBGameMode::GetGameBoard()
 		UE_LOG(LogTemp, Error, TEXT("CurrentStage exceeds Gameboards array Num"));
 		return nullptr;
 	}
-
 }

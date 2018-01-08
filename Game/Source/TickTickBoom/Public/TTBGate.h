@@ -10,6 +10,9 @@ class TICKTICKBOOM_API ATTBGate : public AActor
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(BlueprintReadWrite)
+	class ATTBGameBoard* Gameboard;
+
 	// Sets default values for this actor's properties
 	ATTBGate();
 

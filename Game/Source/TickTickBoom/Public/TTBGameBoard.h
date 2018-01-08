@@ -73,6 +73,18 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta=(ExposeOnSpawn="true"))
 	FGameboardData GameboardData;
 
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<class ATTBButton> ButtonClass;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<class ATTBGate> GateClass;
+
+	UPROPERTY(EditDefaultsOnly)
+		UStaticMesh* CornerMesh;
+
+	UPROPERTY(EditDefaultsOnly)
+		UStaticMesh* WallMesh;
+
 	/* The safe button the player should track and press */
 	UPROPERTY(BlueprintReadWrite)
 		class ATTBButton* SafeButton;
@@ -125,10 +137,11 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	virtual void OnConstruction(const FTransform& Transform) override;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
 
 	UFUNCTION(BlueprintCallable)
 		void OnShortCircuit();
@@ -148,7 +161,7 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 		void OnSafeButtonSet();
 
-	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	UFUNCTION(BlueprintCallable)
 		void BeginCycle();
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
@@ -200,6 +213,10 @@ public:
 	/* Returns a button by grid index */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
 		bool GetButtonIndex(ATTBButton* Button, int32 &OutCol, int32 &OutRow);
+
+	// Find out if the button at index is the button travelling off the board and should wrap to the other side
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
+		bool IsButtonTravelingOffBoard(TArray<ATTBButton*> ButtonArray, int32 Index, EDirection Dir);
 
 	//UFUNCTION(BlueprintCallable, Category = Gameboard)
 		//void CycleButtons();

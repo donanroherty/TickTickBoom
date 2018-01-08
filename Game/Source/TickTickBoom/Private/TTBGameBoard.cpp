@@ -4,8 +4,10 @@
 #include "TTBGameMode.h"
 #include "TTBGameState.h"
 #include "TTBButton.h"
+#include "TTBGate.h"
 #include "TTBHud.h"
 #include "Runtime/Engine/Classes/Engine/World.h"
+#include "Components/StaticMeshComponent.h"
 
 // Sets default values
 ATTBGameBoard::ATTBGameBoard()
@@ -38,6 +40,106 @@ void ATTBGameBoard::BeginPlay()
 	{
 		GS->OnShortCircuit.AddDynamic(this, &ATTBGameBoard::OnShortCircuit);
 	}
+}
+
+void ATTBGameBoard::OnConstruction(const FTransform & Transform)
+{
+	Super::OnConstruction(Transform);
+	
+	// Create buttons
+	for (int32 col = 0; col < GameboardData.Cols; col++)	// Columns
+	{
+		TArray<ATTBButton*> NewRow;
+
+		for (int32 row = 0; row < GameboardData.Rows; row++)	// Rows
+		{
+			FVector ButtonLoc = FVector((row * ButtonSpacing) - (GetBoardLength() / 2), (col * ButtonSpacing) - (GetBoardWidth() / 2), ButtonHeight);
+
+			UChildActorComponent* NewBtnComp = NewObject<UChildActorComponent>(this, FName(*("Button_" + FString::FromInt(col) + "," + FString::FromInt(row))));
+			NewBtnComp->SetupAttachment(this->GetRootComponent());
+			NewBtnComp->RegisterComponent();
+
+			NewBtnComp->SetRelativeLocation(ButtonLoc);
+
+			if (ButtonClass)
+				NewBtnComp->SetChildActorClass(ButtonClass);
+
+			ATTBButton* NewBtn = Cast<ATTBButton>(NewBtnComp->GetChildActor());
+
+			NewBtn->Gameboard = this;
+			NewRow.AddUnique(NewBtn);
+		}
+
+		FButtonGrid Row;
+		Row.Rows = NewRow;
+		ButtonsGrid.Add(Row);
+	}
+
+	OnButtonGridUpdated.Broadcast();
+
+	for (int32 i = 0; i < 4; i++)
+	{
+		// Create corner component
+		UStaticMeshComponent* NewCornerComp = NewObject<UStaticMeshComponent>(this, FName(*("Corner_" + FString::FromInt(i))));
+		NewCornerComp->SetupAttachment(this->GetRootComponent());
+		NewCornerComp->RegisterComponent();
+
+		if (CornerMesh)
+			NewCornerComp->SetStaticMesh(CornerMesh);
+
+		// Offset for the corner pieces
+		FVector LocOffset =
+			i == 0 ? FVector(-1.f, -1.f, 0.f)	// Bottom left
+			: i == 1 ? FVector(1.f, -1.f, 0.f)	// Top left
+			: i == 2 ? FVector(1.f, 1.f, 0.f)	// Top right
+			: FVector(-1.f, 1.f, 0.f);			// Bottom right
+
+		FVector CornerLoc = ((FVector(GetBoardLength(), GetBoardWidth(), 0) / 2.f) + (FVector(ButtonSpacing, ButtonSpacing, ButtonSpacing) / 2.f)) * LocOffset;
+
+		NewCornerComp->SetRelativeLocation(CornerLoc);
+		NewCornerComp->SetRelativeRotation(FRotator(0.f, 90.f * i, 0.f));
+
+		float WallCount =
+			i == 0 ? GameboardData.Rows		// Bottom left
+			: i == 1 ? GameboardData.Cols	// Top left
+			: i == 2 ? GameboardData.Rows	// Top right
+			: GameboardData.Cols;			// Bottom right
+
+
+		//Walls and gates
+		for (int32 j = 0; j < WallCount; j++)
+		{
+			// Make walls
+			UStaticMeshComponent* NewWallComp = NewObject<UStaticMeshComponent>(this, FName(*("Wall_" + FString::FromInt(i) + "," + FString::FromInt(j))));
+			NewWallComp->SetupAttachment(this->GetRootComponent());
+			NewWallComp->RegisterComponent();
+
+			if (WallMesh)
+				NewWallComp->SetStaticMesh(WallMesh);
+
+			FTransform CornerSocketXform = NewCornerComp->GetSocketTransform(TEXT("Attach"), ERelativeTransformSpace::RTS_World);
+			FVector WallLoc = CornerSocketXform.GetLocation() + (FVector(CornerSocketXform.GetUnitAxis(EAxis::Y) * (ButtonSpacing * j)));
+
+			NewWallComp->SetRelativeLocation(WallLoc);
+			NewWallComp->SetRelativeRotation(CornerSocketXform.GetRotation());
+			NewWallComp->SetRelativeScale3D(CornerSocketXform.GetScale3D());
+
+
+			// Make gates
+			UChildActorComponent* NewGateComp = NewObject<UChildActorComponent>(this, FName(*("Gate_" + FString::FromInt(i) + "," + FString::FromInt(j))));
+			NewGateComp->SetupAttachment(this->GetRootComponent());
+			NewGateComp->RegisterComponent();
+
+			if (GateClass)
+				NewGateComp->SetChildActorClass(GateClass);
+
+			ATTBGate* NewGate = Cast<ATTBGate>(NewGateComp->GetChildActor());
+			Gates.Add(NewGate);
+			NewGate->Gameboard = this;
+			NewGate->AttachToComponent(NewWallComp, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TEXT("Attach"));
+		}
+	}
+
 }
 
 // Called every frame
@@ -153,6 +255,12 @@ bool ATTBGameBoard::GetButtonIndex(ATTBButton* Button, int32 &OutCol, int32 &Out
 	return false;
 }
 
+bool ATTBGameBoard::IsButtonTravelingOffBoard(TArray<ATTBButton*> ButtonArray, int32 Index, EDirection Dir)
+{
+	return (Dir == EDirection::MD_Forward && Index == ButtonArray.Num() - 1) // If the button is the last in the array and is traveling forward...
+		|| (Dir == EDirection::MD_Backward && Index == 0); // If the button is first in the array and is traveling backward...
+}
+
 /*
 void ATTBGameBoard::CycleButtons()
 {
@@ -245,3 +353,10 @@ void ATTBGameBoard::CycleGridSection(int32 Idx, EDirection Dir, EGridSectionType
 	}
 }
 */
+
+void ATTBGameBoard::BeginCycle()
+{
+	BoardState = EBoardState::BS_Cycle;
+	CycleOnTimer();
+	SafeButton->SlowFadeOut();
+}
