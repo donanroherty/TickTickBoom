@@ -2,6 +2,7 @@
 
 #include "TTBGameState.h"
 #include "TTBHud.h"
+#include "Runtime/Engine/Public/EngineGlobals.h"
 
 ATTBGameState::ATTBGameState()
 {
@@ -21,7 +22,6 @@ void ATTBGameState::TogglePauseGame()
 
 		ATTBHud* const Hud = Cast<ATTBHud>(PC->GetHUD());
 
-		
 		if (Hud) {
 			if (bIsPaused)
 			{

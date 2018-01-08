@@ -29,6 +29,16 @@ void ATTBButton::BeginPlay()
 // 	{
 // 		ATTBGameBoard* Gameboard = GM->GetGameBoard();
 // 	}
+
+	if (Gameboard)
+	{
+		Gameboard->OnButtonsActivated.AddDynamic(this, &ATTBButton::OnButtonsActivated);
+		Gameboard->OnButtonsDeactivated.AddDynamic(this, &ATTBButton::OnButtonsDeactivated);
+		Gameboard->OnButtonGridUpdated.AddDynamic(this, &ATTBButton::UpdateDebug);
+	}
+
+	// Run debug update manually the first time
+	UpdateDebug();
 }
 
 // Called every frame
@@ -36,5 +46,15 @@ void ATTBButton::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+}
+
+void ATTBButton::OnButtonsActivated()
+{
+	bIsActive = true;
+}
+
+void ATTBButton::OnButtonsDeactivated()
+{
+	bIsActive = false;
 }
 

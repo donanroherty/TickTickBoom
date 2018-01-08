@@ -44,10 +44,10 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	UFUNCTION(BlueprintCallable)
 		void OnButtonsActivated();
 
-	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	UFUNCTION(BlueprintCallable)
 		void OnButtonsDeactivated();
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)

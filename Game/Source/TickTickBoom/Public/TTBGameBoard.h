@@ -49,6 +49,20 @@ enum class EBoardState : uint8
 	BS_PostCycle	UMETA(DisplayName = "PostCycle")
 };
 
+UENUM(BlueprintType)
+enum class EDirection : uint8
+{
+	MD_Forward		UMETA(DisplayName = "Forward"),
+	MD_Backward		UMETA(DisplayName = "Backward"),
+};
+
+UENUM(BlueprintType)
+enum class EGridSectionType : uint8
+{
+	GST_Column		UMETA(DisplayName = "Column"),
+	GST_Row			UMETA(DisplayName = "Row"),
+};
+
 UCLASS()
 class TICKTICKBOOM_API ATTBGameBoard : public AActor
 {
@@ -155,6 +169,7 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 		void Explode();
 
+
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
 		float GetBoardWidth();
 
@@ -163,4 +178,32 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
 		float GetGameboardTimeScale();
+
+	UFUNCTION(BlueprintCallable, Category = Gameboard)
+		class ATTBButton* GetRandButton();
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
+		class ATTBButton* GetButtonByIndex(int32 Col, int32 Row);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
+		TArray<class ATTBButton*> GetColumn(int32 Index);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
+		TArray<class ATTBButton*> GetRow(int32 Index);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
+		TArray<class ATTBButton*> GetAllButtons();
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
+		class ATTBHud* GetHud();
+
+	/* Returns a button by grid index */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
+		bool GetButtonIndex(ATTBButton* Button, int32 &OutCol, int32 &OutRow);
+
+	//UFUNCTION(BlueprintCallable, Category = Gameboard)
+		//void CycleButtons();
+
+	//UFUNCTION(BlueprintCallable, Category = Gameboard)
+		//void CycleGridSection(int32 Idx, EDirection Dir, EGridSectionType SectionType);
 };
