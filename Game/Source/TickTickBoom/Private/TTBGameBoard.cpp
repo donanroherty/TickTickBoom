@@ -46,6 +46,8 @@ void ATTBGameBoard::OnConstruction(const FTransform & Transform)
 {
 	Super::OnConstruction(Transform);
 	
+	// Build the gameboard
+
 	// Create buttons
 	for (int32 col = 0; col < GameboardData.Cols; col++)	// Columns
 	{
@@ -139,7 +141,6 @@ void ATTBGameBoard::OnConstruction(const FTransform & Transform)
 			NewGate->AttachToComponent(NewWallComp, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TEXT("Attach"));
 		}
 	}
-
 }
 
 // Called every frame
