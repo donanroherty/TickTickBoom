@@ -30,9 +30,7 @@ void ATTBGameMode::BeginPlay()
 	// Set camera focus to the gameboard
 	ATTBPlayerController* PC = Cast<ATTBPlayerController>(GetWorld()->GetFirstPlayerController());
 	if (PC)
-	{
 		PC->SetCameraFocusTarget(GetGameBoard());
-	}
 
 	// Wait 3 seconds and start the first stage
 	GetWorldTimerManager().SetTimer(StartGameTimer, this, &ATTBGameMode::StartCurrentStage, 3.f, false);
@@ -59,6 +57,7 @@ void ATTBGameMode::StartCurrentStage()
 
 void ATTBGameMode::SpawnGameboards()
 {	
+	// Spawn a gameboard for each stage defined in GameboardDataTable
 	for (int32 i = 0; i< GetMaxStageCount(); i++)
 	{
 		// The data table rows are named by level number so we find the correct row for each gameboard we want to spawn here
@@ -74,6 +73,7 @@ void ATTBGameMode::SpawnGameboards()
 			if (NewBoard)
 			{
 				NewBoard->GameboardData = *Data;
+				NewBoard->BuildGameboard();
 				Gameboards.Add(NewBoard);
 
 				if (i > 0)
@@ -81,12 +81,11 @@ void ATTBGameMode::SpawnGameboards()
 					ATTBGameBoard* LastBoard = Gameboards[Gameboards.Num() - 2];
 
 					FVector LastOrigin, LastExtent, NewOrigin, NewExtent;
-
 					LastBoard->GetActorBounds(false, LastOrigin, LastExtent);
 					NewBoard->GetActorBounds(false, NewOrigin, NewExtent);
 					
 					// Offset the location of the new board by the bounds of each board + BoardSpacing
-					FVector NewLoc = FVector(0, LastExtent.Y + NewExtent.Y + BoardSpacing, 0);
+					FVector NewLoc = LastBoard->GetActorLocation() + FVector(0, LastExtent.Y + NewExtent.Y + BoardSpacing, 0);
 					NewBoard->SetActorLocation(NewLoc);
 				}
 			}

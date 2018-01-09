@@ -8,6 +8,11 @@
 #include "TTBHud.h"
 #include "Runtime/Engine/Classes/Engine/World.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/AudioComponent.h"
+#include "Components/SpotLightComponent.h"
+#include "Runtime/Engine/Classes/Sound/SoundBase.h"
+#include "TimerManager.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 ATTBGameBoard::ATTBGameBoard()
@@ -28,6 +33,18 @@ ATTBGameBoard::ATTBGameBoard()
 	CountdownSeconds = 3;
 	SafeButtonCycleBias = 2;
 	BoardState = EBoardState::BS_PreCycle;
+
+	RootComp = CreateDefaultSubobject<USceneComponent>(TEXT("RootComp"));
+	SetRootComponent(RootComp);
+
+	SpotLight = CreateDefaultSubobject<USpotLightComponent>(TEXT("Spot light component"));
+	SpotLight->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+	SpotLight->SetRelativeLocation(FVector(63.f, 0, 48.f));
+	SpotLight->SetRelativeRotation(FRotator(-30.f, -180.f, 180.f));
+	SpotLight->LightColor = FColor(255, 188, 127);
+	SpotLight->Intensity = 100.f;
+	SpotLight->OuterConeAngle = 36.f;
+	SpotLight->AttenuationRadius = 300.f;
 }
 
 // Called when the game starts or when spawned
@@ -37,15 +54,11 @@ void ATTBGameBoard::BeginPlay()
 
 	ATTBGameState* GS = Cast<ATTBGameState>(GetWorld()->GetGameState());
 	if (GS)
-	{
 		GS->OnShortCircuit.AddDynamic(this, &ATTBGameBoard::OnShortCircuit);
-	}
 }
 
-void ATTBGameBoard::OnConstruction(const FTransform & Transform)
+void ATTBGameBoard::BuildGameboard()
 {
-	Super::OnConstruction(Transform);
-	
 	// Build the gameboard
 
 	// Create buttons
@@ -70,12 +83,15 @@ void ATTBGameBoard::OnConstruction(const FTransform & Transform)
 
 			NewBtn->Gameboard = this;
 			NewRow.AddUnique(NewBtn);
+			Buttons.Add(NewBtn);
 		}
 
 		FButtonGrid Row;
 		Row.Rows = NewRow;
 		ButtonsGrid.Add(Row);
 	}
+
+	UE_LOG(LogTemp, Display, TEXT("%s"), *(this->GetName() + ": Buttons created - Cols: " + FString::FromInt(ButtonsGrid.Num()) + " Rows: " + FString::FromInt(ButtonsGrid[0].Rows.Num())));
 
 	OnButtonGridUpdated.Broadcast();
 
@@ -143,19 +159,13 @@ void ATTBGameBoard::OnConstruction(const FTransform & Transform)
 	}
 }
 
-// Called every frame
-void ATTBGameBoard::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-}
-
 void ATTBGameBoard::OnShortCircuit()
 {
 	ATTBGameMode* GM = Cast<ATTBGameMode>(GetWorld()->GetAuthGameMode());
 	
 	if (GM && GM->GetGameBoard() == this)
 	{
-		OnButtonsDeactivated.Broadcast();
+		DeactivateButtons();
 		BeginPreCycle();
 	}
 }
@@ -169,7 +179,16 @@ void ATTBGameBoard::ActivateBoard()
 void ATTBGameBoard::DeactivateBoard()
 {
 	bBoardIsActive = false;
-	OnButtonsDeactivated.Broadcast();
+	DeactivateButtons();
+}
+
+void ATTBGameBoard::Explode()
+{
+	PlaySound(PlayerHurtSound);
+	PlaySound(ExplosionSound);
+	UGameplayStatics::SpawnEmitterAttached(ExplosionParticles, GetRootComponent(), TEXT("None"), FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget);
+	UGameplayStatics::SpawnEmitterAttached(SmokeParticles, GetRootComponent(), TEXT("None"), FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget);
+	UGameplayStatics::SpawnEmitterAttached(FireParticles, GetRootComponent(), TEXT("None"), FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget);
 }
 
 float ATTBGameBoard::GetBoardWidth()
@@ -217,18 +236,20 @@ TArray<class ATTBButton*> ATTBGameBoard::GetRow(int32 Index)
 	return Selection;
 }
 
-TArray<class ATTBButton*> ATTBGameBoard::GetAllButtons()
+void ATTBGameBoard::ActivateButtons()
 {
-	TArray<ATTBButton*> Selection;
-	for (int32 i = 0; i< ButtonsGrid.Num(); i++)
+	for (ATTBButton* b : Buttons)
 	{
-		for (int32 j = 0; j < ButtonsGrid.Num(); j++)
-		{
-			Selection.Add(ButtonsGrid[i].Rows[j]);
-		}
+		b->ActivateButton();
 	}
+}
 
-	return Selection;
+void ATTBGameBoard::DeactivateButtons()
+{
+	for (ATTBButton* b : Buttons)
+	{
+		b->DeactivateButton();
+	}
 }
 
 ATTBHud* ATTBGameBoard::GetHud()
@@ -242,7 +263,6 @@ bool ATTBGameBoard::GetButtonIndex(ATTBButton* Button, int32 &OutCol, int32 &Out
 	{
 		for (int32 j = 0; j < ButtonsGrid.Num(); j++)
 		{
-
 			if (ButtonsGrid[i].Rows[j] == Button)
 			{
 				OutCol = i;
@@ -355,9 +375,93 @@ void ATTBGameBoard::CycleGridSection(int32 Idx, EDirection Dir, EGridSectionType
 }
 */
 
+void ATTBGameBoard::OnSafeButtonSet()
+{
+	SafeButton->FlashButton(false);
+
+	// Start machine noises
+	if (MachineNoiseSound)
+	{
+		MachineNoiseAudioComp = PlaySound(MachineNoiseSound);
+		MachineNoiseAudioComp->FadeIn(1.f);
+	}
+	
+	GetHud()->BeginCountdown(CountdownSeconds);
+	GetWorldTimerManager().SetTimer(BeginCycleTimerHandle, this, &ATTBGameBoard::BeginCycle, CountdownSeconds);
+}
+
 void ATTBGameBoard::BeginCycle()
 {
 	BoardState = EBoardState::BS_Cycle;
 	CycleOnTimer();
 	SafeButton->SlowFadeOut();
+}
+
+void ATTBGameBoard::OnCycleComplete()
+{
+	BoardState = EBoardState::BS_PostCycle;
+	GetHud()->OnCycleComplete();
+	MachineNoiseAudioComp->FadeOut(1.f, 0.f);	// Stop machine noises
+
+	for (ATTBButton* b : Buttons)
+		ActivateButtons();
+}
+
+UAudioComponent* ATTBGameBoard::PlaySound(USoundBase* Sound)
+{
+	UAudioComponent* AC = NULL;
+
+	if (Sound)
+	{
+		AC = UGameplayStatics::SpawnSoundAttached(Sound, GetRootComponent());
+	}
+
+	return AC;
+}
+
+void ATTBGameBoard::ButtonClicked(ATTBButton * ClickedButton)
+{
+	DeactivateButtons();
+
+	if (ClickedButton == SafeButton)
+	{
+		SafeButton->FadeSafeIn();
+		GetWorldTimerManager().SetTimer(DelayTimerHandle1, this, &ATTBGameBoard::OnLevelSuccess, .5f);
+	}
+	else
+	{
+
+		OnLevelFailure();
+	}
+}
+
+void ATTBGameBoard::OnLevelSuccess()
+{
+	for (ATTBButton* b : Buttons)
+	{
+		b->RetractButton();
+		b->FadeSafeIn();
+	}
+	PlaySound(MachineWindDownSound);
+
+	ATTBGameMode* GM = Cast<ATTBGameMode>(GetWorld()->GetAuthGameMode());
+	if(GM)
+		GM->OnStageSucess();
+}
+
+void ATTBGameBoard::OnLevelFailure()
+{
+	SafeButton->FadeSafeIn();
+	for (ATTBButton* b : Buttons)
+	{
+		if (b != SafeButton)
+			b->RetractButton();
+	}
+
+	DeactivateBoard();
+	GetWorldTimerManager().SetTimer(DelayTimerHandle1, this, &ATTBGameBoard::Explode, 1.f);
+
+	ATTBGameMode* GM = Cast<ATTBGameMode>(GetWorld()->GetAuthGameMode());
+	if (GM)
+		GetWorldTimerManager().SetTimer(DelayTimerHandle2, GM, &ATTBGameMode::OnStageFailed, 2.f);
 }

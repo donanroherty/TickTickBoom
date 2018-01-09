@@ -8,8 +8,6 @@
 #include "TTBGameBoard.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FButtonGridUpdated);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FButtonsDeactivated);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FButtonsActivated);
 
 USTRUCT(BlueprintType)
 struct FGameboardData : public FTableRowBase
@@ -69,6 +67,15 @@ class TICKTICKBOOM_API ATTBGameBoard : public AActor
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		class USceneComponent* RootComp;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		class UAudioComponent* MachineNoiseAudioComp;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		class USpotLightComponent* SpotLight;
+
 	/* Data used to build the gameboard and ruleset */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta=(ExposeOnSpawn="true"))
 	FGameboardData GameboardData;
@@ -116,18 +123,34 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 		TArray<FButtonGrid> ButtonsGrid;
 
+	UPROPERTY(BlueprintReadWrite)
+		TArray<class ATTBButton*> Buttons;
 
+	/* Delegates */
 	/* Called when the button grid is updated */
 	UPROPERTY(BlueprintAssignable, BlueprintCallable)
 	FButtonGridUpdated OnButtonGridUpdated;
 
-	/* Called when the buttons are deactivated */
-	UPROPERTY(BlueprintAssignable, BlueprintCallable)
-	FButtonsDeactivated OnButtonsDeactivated;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	class USoundBase* MachineNoiseSound;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	class USoundBase* ExplosionSound;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	class USoundBase* PlayerHurtSound;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	class USoundBase* MachineWindDownSound;
 
-	/* Called when the buttons are activated */
-	UPROPERTY(BlueprintAssignable, BlueprintCallable)
-	FButtonsActivated OnButtonsActivated;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		class UParticleSystem* ExplosionParticles;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		class UParticleSystem* SmokeParticles;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+		class UParticleSystem* FireParticles;
+
+	FTimerHandle BeginCycleTimerHandle;
+	FTimerHandle DelayTimerHandle1;
+	FTimerHandle DelayTimerHandle2;
 
 public:	
 	// Sets default values for this actor's properties
@@ -137,11 +160,8 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	virtual void OnConstruction(const FTransform& Transform) override;
-
 public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	void BuildGameboard();
 
 	UFUNCTION(BlueprintCallable)
 		void OnShortCircuit();
@@ -153,12 +173,12 @@ public:
 		void DeactivateBoard();
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
-	void BeginPreCycle();
+		void BeginPreCycle();
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 		void ChooseSafeButton();
 
-	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	UFUNCTION(BlueprintCallable)
 		void OnSafeButtonSet();
 
 	UFUNCTION(BlueprintCallable)
@@ -168,18 +188,26 @@ public:
 		void CycleOnTimer();
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+		void Cycle();
+
+	UFUNCTION(BlueprintCallable)
 		void OnCycleComplete();
+
+	UFUNCTION(BlueprintCallable)
+	UAudioComponent* PlaySound(USoundBase* Sound);
 	
-	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	/* Called when the player presses a button */
+	UFUNCTION(BlueprintCallable)
 		void ButtonClicked(class ATTBButton* ClickedButton);
 
-	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	UFUNCTION(BlueprintCallable)
 		void OnLevelSuccess();
 
-	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	UFUNCTION(BlueprintCallable)
 		void OnLevelFailure();
 
-	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	/* Plays sounds and effects when the gameboard explodes */
+	UFUNCTION(BlueprintCallable)
 		void Explode();
 
 
@@ -204,8 +232,11 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
 		TArray<class ATTBButton*> GetRow(int32 Index);
 
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
-		TArray<class ATTBButton*> GetAllButtons();
+	UFUNCTION(BlueprintCallable, Category = Buttons)
+		void ActivateButtons();
+
+	UFUNCTION(BlueprintCallable, Category = Buttons)
+		void DeactivateButtons();
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
 		class ATTBHud* GetHud();
@@ -214,7 +245,7 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
 		bool GetButtonIndex(ATTBButton* Button, int32 &OutCol, int32 &OutRow);
 
-	// Find out if the button at index is the button travelling off the board and should wrap to the other side
+	// Find out if the button at index is the button traveling off the board and should wrap to the other side
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
 		bool IsButtonTravelingOffBoard(TArray<ATTBButton*> ButtonArray, int32 Index, EDirection Dir);
 

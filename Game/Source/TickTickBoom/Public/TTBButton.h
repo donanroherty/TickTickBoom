@@ -45,10 +45,10 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable)
-		void OnButtonsActivated();
+		void ActivateButton();
 
 	UFUNCTION(BlueprintCallable)
-		void OnButtonsDeactivated();
+		void DeactivateButton();
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 		void UpdateDebug();

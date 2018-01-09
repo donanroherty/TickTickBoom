@@ -32,8 +32,6 @@ void ATTBButton::BeginPlay()
 
 	if (Gameboard)
 	{
-		Gameboard->OnButtonsActivated.AddDynamic(this, &ATTBButton::OnButtonsActivated);
-		Gameboard->OnButtonsDeactivated.AddDynamic(this, &ATTBButton::OnButtonsDeactivated);
 		Gameboard->OnButtonGridUpdated.AddDynamic(this, &ATTBButton::UpdateDebug);
 	}
 
@@ -48,12 +46,12 @@ void ATTBButton::Tick(float DeltaTime)
 
 }
 
-void ATTBButton::OnButtonsActivated()
+void ATTBButton::ActivateButton()
 {
 	bIsActive = true;
 }
 
-void ATTBButton::OnButtonsDeactivated()
+void ATTBButton::DeactivateButton()
 {
 	bIsActive = false;
 }
