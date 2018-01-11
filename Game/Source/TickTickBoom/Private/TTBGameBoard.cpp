@@ -351,16 +351,19 @@ bool ATTBGameBoard::IsButtonTravelingOffBoard(TArray<ATTBButton*> ButtonArray, i
 		|| (Dir == EDirection::MD_Backward && Index == 0); // If the button is first in the array and is traveling backward...
 }
 
-/*
+
 void ATTBGameBoard::CycleButtons()
 {
+	/*
+	Select sections (columns or rows) to cycle
+	*/
+
 	// Randomly choose to cycle columns or rows
 	EGridSectionType CycleType = FMath::RandBool() == true ? EGridSectionType::GST_Column : EGridSectionType::GST_Row;
 
 	int32 safeBtnX;
 	int32 safeBtnY;
 	GetButtonIndex(SafeButton, safeBtnX, safeBtnY);
-
 	int32 SafeButtonSectionIdx = CycleType == EGridSectionType::GST_Column ? safeBtnX : safeBtnY;
 
 	TArray<int32> SelectedSections;
@@ -394,20 +397,33 @@ void ATTBGameBoard::CycleButtons()
 		}
 	}
 
-	// For each random section
-	for (int32 i = 0;i < SelectedSections.Num(); i++)
+	/*
+	Cycle the selected sections
+	*/
+	for (int32 SectionIdx : SelectedSections)
 	{
 		// Randomly choose cycle direction
 		EDirection CycleDirection = FMath::RandBool() == true ? EDirection::MD_Forward : EDirection::MD_Forward;
 
-		TArray<ATTBButton*> CycleButtons = CycleType == EGridSectionType::GST_Column ? GetColumn(i) : GetRow(i);
+		TArray<ATTBButton*> CycleButtons = CycleType == EGridSectionType::GST_Column ? GetColumn(SectionIdx) : GetRow(SectionIdx);
 		for (int32 j = 0; j < CycleButtons.Num(); j++)
 		{
-
+			bool bIsLeavingBoard = IsButtonTravelingOffBoard(CycleButtons, j, CycleDirection);
+			PrepCycle(CycleButtons[j], CycleType, CycleDirection, bIsLeavingBoard);
 		}
+
+		CycleGridSection(SectionIdx, CycleDirection, CycleType);
+		OnButtonGridUpdated.Broadcast();
+
+		int32 Gate1Idx;
+		int32 Gate2Idx;
+		GetGateIndicesForSection(SectionIdx, CycleType, Gate1Idx, Gate2Idx);
+
+		Gates[Gate1Idx]->PlayGateAnim();
+		Gates[Gate2Idx]->PlayGateAnim();
 	}
 }
-*/
+
 
 void ATTBGameBoard::CycleGridSection(int32 Idx, EDirection Dir, EGridSectionType SectionType)
 {
@@ -444,6 +460,19 @@ void ATTBGameBoard::CycleGridSection(int32 Idx, EDirection Dir, EGridSectionType
 			ButtonsGrid[i].Rows = ExistingRow;
 		}
 	}
+}
+
+void ATTBGameBoard::GetGateIndicesForSection(int32 SectionIdx, EGridSectionType SectionType, int32 &OutGateIndex1, int32 &OutGateIndex2)
+{
+	/* Gates are stored in a regular list so we do a little math to relate columns and rows to a linear list. */
+
+	OutGateIndex1 = (SectionType == EGridSectionType::GST_Column)
+		? SectionIdx + GameboardData.Rows 
+		: SectionIdx;
+
+	OutGateIndex2 = (SectionType == EGridSectionType::GST_Column)
+		? ((SectionIdx + (GameboardData.Rows * 2)) + ((GameboardData.Cols - SectionIdx) * 2)) - 1 
+		: ((SectionIdx + GameboardData.Cols) + (((GameboardData.Rows - 1) - SectionIdx) * 2)) + 1;
 }
 
 

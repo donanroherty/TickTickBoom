@@ -206,9 +206,14 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
 	bool IsButtonTravelingOffBoard(TArray<ATTBButton*> ButtonArray, int32 Index, EDirection Dir);
 
-	//UFUNCTION(BlueprintCallable, Category = Gameboard)
-		//void CycleButtons();
+	UFUNCTION(BlueprintCallable, Category = Gameboard)
+		void CycleButtons();
 
+	/* Switch the positions of buttons in the 2D grid array */
 	UFUNCTION(BlueprintCallable, Category = Gameboard)
 		void CycleGridSection(int32 Idx, EDirection Dir, EGridSectionType SectionType);
+
+	/* Returns the indices of the gates associated with a section */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
+	void GetGateIndicesForSection(int32 SectionIdx, EGridSectionType SectionType, int32 &OutGateIndex1, int32 &OutGateIndex2);
 };
