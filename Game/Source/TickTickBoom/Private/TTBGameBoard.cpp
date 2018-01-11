@@ -407,6 +407,7 @@ void ATTBGameBoard::CycleButtons()
 		}
 	}
 }
+*/
 
 void ATTBGameBoard::CycleGridSection(int32 Idx, EDirection Dir, EGridSectionType SectionType)
 {
@@ -417,14 +418,16 @@ void ATTBGameBoard::CycleGridSection(int32 Idx, EDirection Dir, EGridSectionType
 	if (Dir == EDirection::MD_Forward)
 	{
 		// Move the last item to the first position in the array
-		NewSection.Insert(NewSection[NewSection.Num() - 1], 0);
+		ATTBButton* Item = NewSection[NewSection.Num() - 1];
 		NewSection.RemoveAt(NewSection.Num() - 1);
+		NewSection.Insert(Item, 0);
 	}
 	else
 	{
 		// Move the first item to the end of the array
-		NewSection.Add(NewSection[0]);
+		ATTBButton* Item = NewSection[0];
 		NewSection.RemoveAt(0);
+		NewSection.Add(Item);
 	}
 
 	// Assign the temp array back to the grid
@@ -442,7 +445,7 @@ void ATTBGameBoard::CycleGridSection(int32 Idx, EDirection Dir, EGridSectionType
 		}
 	}
 }
-*/
+
 
 void ATTBGameBoard::OnSafeButtonSet()
 {
@@ -540,9 +543,7 @@ UAudioComponent* ATTBGameBoard::PlaySound(USoundBase* Sound)
 	UAudioComponent* AC = NULL;
 
 	if (Sound)
-	{
 		AC = UGameplayStatics::SpawnSoundAttached(Sound, GetRootComponent());
-	}
 
 	return AC;
 }
@@ -558,7 +559,6 @@ void ATTBGameBoard::ButtonClicked(ATTBButton * ClickedButton)
 	}
 	else
 	{
-
 		OnLevelFailure();
 	}
 }

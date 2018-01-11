@@ -209,6 +209,6 @@ public:
 	//UFUNCTION(BlueprintCallable, Category = Gameboard)
 		//void CycleButtons();
 
-	//UFUNCTION(BlueprintCallable, Category = Gameboard)
-		//void CycleGridSection(int32 Idx, EDirection Dir, EGridSectionType SectionType);
+	UFUNCTION(BlueprintCallable, Category = Gameboard)
+		void CycleGridSection(int32 Idx, EDirection Dir, EGridSectionType SectionType);
 };
