@@ -477,14 +477,6 @@ void ATTBGameBoard::OnCycleComplete()
 
 void ATTBGameBoard::PrepCycle(ATTBButton* Button, EGridSectionType SectionType, EDirection Dir, bool bIsLeavingGrid)
 {
-	// Get movement direction as a unit vector based on movement direction
-	FVector MoveVect = (SectionType == EGridSectionType::GST_Column) ? GetActorForwardVector() : GetActorRightVector();
-	MoveVect *= (Dir == EDirection::MD_Forward) ? 1.f : -1.f;
-
-	// Get the final target location for the button
-	FVector TargetLoc = Button->GetActorLocation() + (MoveVect * ButtonSpacing);
-	TargetLoc.Z = ButtonHeight;
-
 	/*
 	* If the button is leaving the grid, we create a proxy in it's place to move off the grid.
 	* The actual button is moved into position to scroll onto the board.
@@ -515,7 +507,6 @@ void ATTBGameBoard::PrepCycle(ATTBButton* Button, EGridSectionType SectionType, 
 		/*
 		* The button that is going off grid is moved immediately to the opposite side of the board and is moved onto the grid
 		*/
-
 		float Span = (SectionType == EGridSectionType::GST_Column) ? GetBoardLength() : GetBoardWidth();
 		Span += ButtonSpacing;
 		Span *= (Dir == EDirection::MD_Forward) ? -1.f : 1.f;
@@ -523,7 +514,6 @@ void ATTBGameBoard::PrepCycle(ATTBButton* Button, EGridSectionType SectionType, 
 
 		// Move button to position on the opposite side of the grid in preparation to scroll onto the grid
 		Button->SetActorLocationAndRotation(Button->GetActorLocation() + SpanVect, (TargetRot * -1.f).Quaternion());
-			
 		Button->RetractImmediate();	// Start in retracted state
 		Button->ExtendButton();	// Extend as it scrolls onto the grid
 	}

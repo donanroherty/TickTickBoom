@@ -118,7 +118,4 @@ public:
 	void HandleColorTimeline(EColorFunction InColorFunction);
 	UFUNCTION()
 	void SetColorTimelineCallback(float Val);
-
-	UFUNCTION(BlueprintCallable)
-	void Cycle(EGridSectionType SectionType, EDirection Dir, bool bIsLeavingGrid);
 };

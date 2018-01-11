@@ -185,66 +185,6 @@ void ATTBButton::SetColorTimelineCallback(float Val)
 	ButtonMaterialInstance->SetScalarParameterValue(TEXT("ColorBlend"), Val);
 }
 
-void ATTBButton::Cycle(EGridSectionType SectionType, EDirection Dir, bool bIsLeavingGrid)
-{
-	// Get movement direction based as a unit vector based on movement direction
-	FVector MoveDir;
-	if (SectionType == EGridSectionType::GST_Column)
-		MoveDir = (Dir == EDirection::MD_Forward) ? Gameboard->GetActorForwardVector() : Gameboard->GetActorForwardVector() * -1;
-	else
-		MoveDir = (Dir == EDirection::MD_Forward) ? Gameboard->GetActorRightVector() : Gameboard->GetActorRightVector() * -1;
-
-	//Target Location = Current position + (direction * spacing between buttons).  Button height remains at default height
-	FVector TargetLoc = GetActorLocation() + (MoveDir * Gameboard->ButtonSpacing);
-	TargetLoc.Z = Gameboard->ButtonHeight;
-
-	/*
-		If the button is leaving the grid, we create a proxy in it's place to move off the grid.  
-		The actual button is moved into position to scroll onto the board.
-	*/
-	if (bIsLeavingGrid)
-	{
-		// Spawn the proxy button.  This button scrolls off the grid instead of the actual grid buttons
-		ATTBButton* Proxy = GetWorld()->SpawnActor<ATTBButton>(Gameboard->ButtonClass, GetActorTransform());
-		Proxy->Gameboard = Gameboard;
-		Proxy->bIsPlaceholder = true;
-		Proxy->RetractButton();
-
-		FTransform ProxyTargetXForm;
-		ProxyTargetXForm.SetLocation(FVector(TargetLoc.X, TargetLoc.Y, 0.f));	// Zeroed out Z as the button needs to hide beneath the gates
-		
-		// Get target rotation based on movement direction
-		FRotator TargetRot; // The rotation for a piece thats about to scroll onto the grid.
-		if (SectionType == EGridSectionType::GST_Column)
-			TargetRot = (Dir == EDirection::MD_Forward) ? FRotator(-90.f, 0.f, 0.f) : FRotator(90.f, 0.f, 0.f);
-		else
-			TargetRot = (Dir == EDirection::MD_Forward) ? FRotator(0.f, 0.f, 90.f) : FRotator(0.f, 0.f, -90.f);
-
-		ProxyTargetXForm.SetRotation(TargetRot.Quaternion());
-
-
-		// Get board width or height depending on if were cycling a row or column
-		float Span = (SectionType == EGridSectionType::GST_Column) ? Gameboard->GetBoardLength() : Gameboard->GetBoardWidth();
-		// Add spacing because we're moving this piece in from outside the grid
-		Span += Gameboard->ButtonSpacing;	
-		// If we're cycling forwards, invert our board dimension as the piece needs to pop in on the opposite side from where it is now
-		Span *= (Dir == EDirection::MD_Forward) ? -1.f : 1.f;
-		FVector SpawnVect = (SectionType == EGridSectionType::GST_Column) ? FVector(Span, 0.f, 0.f) : FVector(0.f, Span, 0.f);
-
-		// Move button to position on the opposite side of the grid in preparation to scroll onto the grid
-		SetActorLocationAndRotation(SpawnVect, (TargetRot * -1.f).Quaternion());
-
-		// Start in retracted state
-		RetractImmediate();
-
-		// And extend as it scrolls onto the grid
-		ExtendButton();
-	}
-  
-	// Perform movement
-	MoveToNewSlot(FTransform(FRotator::ZeroRotator, TargetLoc));	
-}
-
 UAudioComponent* ATTBButton::PlaySound(USoundBase* Sound)
 {
 	UAudioComponent* AC = NULL;
