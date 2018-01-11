@@ -1,9 +1,16 @@
-
-
 #include "TTBButton.h"
 #include "TTBGameMode.h"
+#include "Runtime/CoreUObject/Public/UObject/ConstructorHelpers.h"
 #include "TTBGameBoard.h"
 #include "Runtime/Engine/Classes/Engine/World.h"
+#include "Components/TimelineComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/SceneComponent.h"
+#include "Runtime/Engine/Classes/Sound/SoundBase.h"
+#include "Runtime/Engine/Classes/Sound/SoundCue.h"
+#include "Kismet/GameplayStatics.h"
+#include "Components/AudioComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 // Sets default values
 ATTBButton::ATTBButton()
@@ -11,48 +18,241 @@ ATTBButton::ATTBButton()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	ButtonExtendedHeight = 2.f;
+	BlinkTime = .3f;
+	RetractedButtonZ = - 2.f;
 	ButtonTargetHeight = 0.f;
 	bIsPlaceholder = false;
 	bIsActive = false;
 	bIsPlaceholder = false;
+
+	RootComp = CreateDefaultSubobject<USceneComponent>(TEXT("RootComp"));
+	SetRootComponent(RootComp);
+
+	// Create geometry components
+	Casing = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Casing"));
+	Casing->AttachToComponent(RootComp, FAttachmentTransformRules::KeepRelativeTransform);
+	Tube = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Tube"));
+	Tube->AttachToComponent(Casing, FAttachmentTransformRules::KeepRelativeTransform);
+	Button = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Button"));
+	Button->AttachToComponent(Tube, FAttachmentTransformRules::KeepRelativeTransform);
+
+	// TODO: This should probably use references in editor rather than ObjectFinder
+	// Load curves
+	static ConstructorHelpers::FObjectFinder<UCurveFloat> LinearCurve_Asset(TEXT("CurveFloat'/Game/Curves/Linear_Curve.Linear_Curve'"));
+	check(LinearCurve_Asset.Succeeded());
+	LinearCurve = LinearCurve_Asset.Object;
+
+	static ConstructorHelpers::FObjectFinder<UCurveFloat> LinearReverseCurve_Asset(TEXT("CurveFloat'/Game/Curves/LinearReverse_Curve.LinearReverse_Curve'"));
+	check(LinearReverseCurve_Asset.Succeeded());
+	LinearReverseCurve = LinearReverseCurve_Asset.Object;
+
+	static ConstructorHelpers::FObjectFinder<UCurveFloat> BlinkCurve_Asset(TEXT("CurveFloat'/Game/Curves/Blink_Curve.Blink_Curve'"));
+	check(BlinkCurve_Asset.Succeeded());
+	BlinkCurve = BlinkCurve_Asset.Object;
+
+	static ConstructorHelpers::FObjectFinder<UCurveFloat> BlinkAndHoldCurve_Asset(TEXT("CurveFloat'/Game/Curves/BlinkAndHold_Curve.BlinkAndHold_Curve'"));
+	check(BlinkAndHoldCurve_Asset.Succeeded());
+	BlinkAndHoldCurve = BlinkAndHoldCurve_Asset.Object;
+
+	static ConstructorHelpers::FObjectFinder<UCurveFloat> SlowFadeOutCurve_Asset(TEXT("CurveFloat'/Game/Curves/SlowFadeOut_Curve.SlowFadeOut_Curve'"));
+	check(SlowFadeOutCurve_Asset.Succeeded());
+	SlowFadeOutCurve = SlowFadeOutCurve_Asset.Object;
+
+	// Load sound assets.
+	static ConstructorHelpers::FObjectFinder<USoundCue> ClickSound_Asset(TEXT("SoundCue'/Game/Sounds/SC_Click.SC_Click'"));
+	check(ClickSound_Asset.Succeeded())
+	ClickSound = ClickSound_Asset.Object;
+
+	static ConstructorHelpers::FObjectFinder<USoundCue> CycleClickSound_Asset(TEXT("SoundCue'/Game/Sounds/SC_CycleClicks.SC_CycleClicks'"));
+	check(CycleClickSound_Asset.Succeeded())
+	CycleClickSound = ClickSound_Asset.Object;
+
+	// Create timelines
+	MovementTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("MovementTimeline"));
+	TubeTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("TubeTimeline"));
+	ColorTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("ColorTimeline"));
 }
+
 
 // Called when the game starts or when spawned
 void ATTBButton::BeginPlay()
 {
 	Super::BeginPlay();
-	
-// 	ATTBGameMode* GM = Cast<ATTBGameMode>(GetWorld()->GetAuthGameMode());
-// 
-// 	if (GM)
-// 	{
-// 		ATTBGameBoard* Gameboard = GM->GetGameBoard();
-// 	}
 
 	if (Gameboard)
-	{
 		Gameboard->OnButtonGridUpdated.AddDynamic(this, &ATTBButton::UpdateDebug);
-	}
 
 	// Run debug update manually the first time
 	UpdateDebug();
 }
 
-// Called every frame
-void ATTBButton::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
 
+void ATTBButton::SetActive(bool bNewActive)
+{
+	bIsActive = bNewActive;
 }
 
-void ATTBButton::ActivateButton()
+void ATTBButton::RetractButton()
 {
-	bIsActive = true;
+	HandleExtension(ETubeAction::TS_Retract);
 }
 
-void ATTBButton::DeactivateButton()
+void ATTBButton::ExtendButton()
 {
-	bIsActive = false;
+	HandleExtension(ETubeAction::TS_Extend);
 }
 
+void ATTBButton::RetractImmediate()
+{
+	Tube->SetRelativeLocation(FVector(0.f, 0.f, RetractedButtonZ));
+}
+
+void ATTBButton::HandleExtension(ETubeAction NewTubeAction)
+{
+	ButtonTargetHeight = (NewTubeAction == ETubeAction::TS_Extend) ? 0.f : RetractedButtonZ;	// Set target height based on if this is a retraction or extension
+
+	FOnTimelineFloat tickCallback{};	// Called on each tick of the timeline
+	tickCallback.BindUFunction(this, FName{ TEXT("ExtensionTLCallback") });
+	TubeTimeline->AddInterpFloat(LinearCurve, tickCallback, FName{ TEXT("TubeAnimation") });
+	TubeTimeline->SetPlayRate(Gameboard->GetGameboardTimeScale());
+
+	TubeTimeline->PlayFromStart();
+}
+
+void ATTBButton::ExtensionTLCallback(float Val)
+{
+	float NewZ = FMath::Lerp(Tube->RelativeLocation.Z, ButtonTargetHeight, Val);
+	Tube->SetRelativeLocation(FVector(0.f, 0.f, NewZ));
+}
+
+void ATTBButton::MoveToNewSlot(FTransform TargetTransform)
+{
+	PlaySound(CycleClickSound);
+	MoveTargetXForm = TargetTransform;
+
+	FOnTimelineEventStatic finishedCallback{};	// Called when the timeline completes
+	finishedCallback.BindUFunction(this, FName{TEXT("MovementTLFinishedCallback")});
+	MovementTimeline->SetTimelineFinishedFunc(finishedCallback);
+
+	FOnTimelineFloat tickCallback{};	// Called on each tick of the timeline
+	tickCallback.BindUFunction(this, FName{ TEXT("MovementTLTickCallback") });
+
+	MovementTimeline->AddInterpFloat(LinearCurve, tickCallback, FName{ TEXT("MovementAnimation") });
+	MovementTimeline->SetPlayRate(Gameboard->GetGameboardTimeScale());
+	MovementTimeline->PlayFromStart();
+}
+
+void ATTBButton::MovementTLTickCallback(float Val)
+{
+	FVector NewLoc = FMath::Lerp(GetActorLocation(), MoveTargetXForm.GetLocation(), Val);
+	FRotator NewRot = FMath::Lerp(GetActorRotation(), MoveTargetXForm.GetRotation().Rotator(), Val);
+	SetActorLocationAndRotation(NewLoc, NewRot);
+}
+
+void ATTBButton::MovementTLFinishedCallback()
+{
+	if (bIsPlaceholder)
+		Destroy();
+}
+
+void ATTBButton::HandleColorTimeline(EColorFunction InColorFunction)
+{
+	UCurveFloat* Curve = BlinkCurve;
+
+	Curve =
+		(InColorFunction == EColorFunction::CC_Blink) ? BlinkCurve
+		: (InColorFunction == EColorFunction::CC_BlinkAndHold) ? BlinkAndHoldCurve
+		: (InColorFunction == EColorFunction::CC_SlowFadeOut) ? SlowFadeOutCurve
+		: (InColorFunction == EColorFunction::CC_FadeOut) ? LinearReverseCurve
+		: LinearCurve;
+
+	float PlayRate = (InColorFunction == EColorFunction::CC_SlowFadeOut) 
+		? 1.f / 3.f 
+		: 1.f / 0.3f;
+	
+	FOnTimelineFloat tickCallback{};	// Called on each tick of the timeline
+	tickCallback.BindUFunction(this, FName{ TEXT("SetColorTimelineCallback") });	
+	ColorTimeline->AddInterpFloat(Curve, tickCallback, FName{ TEXT("ColorAnimation") });
+	ColorTimeline->SetPlayRate(PlayRate);
+
+	ColorTimeline->PlayFromStart();
+
+	PlaySound(ClickSound);
+}
+
+void ATTBButton::SetColorTimelineCallback(float Val)
+{
+	ButtonMaterialInstance->SetScalarParameterValue(TEXT("ColorBlend"), Val);
+}
+
+void ATTBButton::Cycle(EGridSectionType SectionType, EDirection Dir, bool bIsLeavingGrid)
+{
+	// Get movement direction based as a unit vector based on movement direction
+	FVector MoveDir;
+	if (SectionType == EGridSectionType::GST_Column)
+		MoveDir = (Dir == EDirection::MD_Forward) ? Gameboard->GetActorForwardVector() : Gameboard->GetActorForwardVector() * -1;
+	else
+		MoveDir = (Dir == EDirection::MD_Forward) ? Gameboard->GetActorRightVector() : Gameboard->GetActorRightVector() * -1;
+
+	//Target Location = Current position + (direction * spacing between buttons).  Button height remains at default height
+	FVector TargetLoc = GetActorLocation() + (MoveDir * Gameboard->ButtonSpacing);
+	TargetLoc.Z = Gameboard->ButtonHeight;
+
+	/*
+		If the button is leaving the grid, we create a proxy in it's place to move off the grid.  
+		The actual button is moved into position to scroll onto the board.
+	*/
+	if (bIsLeavingGrid)
+	{
+		// Spawn the proxy button.  This button scrolls off the grid instead of the actual grid buttons
+		ATTBButton* Proxy = GetWorld()->SpawnActor<ATTBButton>(Gameboard->ButtonClass, GetActorTransform());
+		Proxy->Gameboard = Gameboard;
+		Proxy->bIsPlaceholder = true;
+		Proxy->RetractButton();
+
+		FTransform ProxyTargetXForm;
+		ProxyTargetXForm.SetLocation(FVector(TargetLoc.X, TargetLoc.Y, 0.f));	// Zeroed out Z as the button needs to hide beneath the gates
+		
+		// Get target rotation based on movement direction
+		FRotator TargetRot; // The rotation for a piece thats about to scroll onto the grid.
+		if (SectionType == EGridSectionType::GST_Column)
+			TargetRot = (Dir == EDirection::MD_Forward) ? FRotator(-90.f, 0.f, 0.f) : FRotator(90.f, 0.f, 0.f);
+		else
+			TargetRot = (Dir == EDirection::MD_Forward) ? FRotator(0.f, 0.f, 90.f) : FRotator(0.f, 0.f, -90.f);
+
+		ProxyTargetXForm.SetRotation(TargetRot.Quaternion());
+
+
+		// Get board width or height depending on if were cycling a row or column
+		float Span = (SectionType == EGridSectionType::GST_Column) ? Gameboard->GetBoardLength() : Gameboard->GetBoardWidth();
+		// Add spacing because we're moving this piece in from outside the grid
+		Span += Gameboard->ButtonSpacing;	
+		// If we're cycling forwards, invert our board dimension as the piece needs to pop in on the opposite side from where it is now
+		Span *= (Dir == EDirection::MD_Forward) ? -1.f : 1.f;
+		FVector SpawnVect = (SectionType == EGridSectionType::GST_Column) ? FVector(Span, 0.f, 0.f) : FVector(0.f, Span, 0.f);
+
+		// Move button to position on the opposite side of the grid in preparation to scroll onto the grid
+		SetActorLocationAndRotation(SpawnVect, (TargetRot * -1.f).Quaternion());
+
+		// Start in retracted state
+		RetractImmediate();
+
+		// And extend as it scrolls onto the grid
+		ExtendButton();
+	}
+  
+	// Perform movement
+	MoveToNewSlot(FTransform(FRotator::ZeroRotator, TargetLoc));	
+}
+
+UAudioComponent* ATTBButton::PlaySound(USoundBase* Sound)
+{
+	UAudioComponent* AC = NULL;
+
+	if (Sound)
+	{
+		AC = UGameplayStatics::SpawnSoundAttached(Sound, GetRootComponent());
+	}
+
+	return AC;
+}

@@ -1,5 +1,3 @@
-
-
 #include "TTBGameBoard.h"
 #include "TTBGameMode.h"
 #include "TTBGameState.h"
@@ -11,14 +9,43 @@
 #include "Components/AudioComponent.h"
 #include "Components/SpotLightComponent.h"
 #include "Runtime/Engine/Classes/Sound/SoundBase.h"
+#include "Runtime/Engine/Classes/Sound/SoundCue.h"
 #include "TimerManager.h"
 #include "Kismet/GameplayStatics.h"
+#include "Runtime/CoreUObject/Public/UObject/ConstructorHelpers.h"
+#include "ParticleDefinitions.h"
 
-// Sets default values
 ATTBGameBoard::ATTBGameBoard()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+
+	//TODO: Revert to normal reference assignment in BP class.  Used ObjectFinder to prevent refs getting cleared by hot-reload.
+
+//	static ConstructorHelpers::FObjectFinder<UBlueprint> ButtonClass_Asset(TEXT("Blueprint'/Game/Blueprint/BP_Button.BP_Button'"));
+//	ButtonClass = ButtonClass_Asset.Object;
+	//static ConstructorHelpers::FObjectFinder<UBlueprint> GateClass_Asset(TEXT("Blueprint'/Game/Blueprint/BP_GateActor.BP_GateActor'"));
+	//GateClass = GateClass_Asset.Object;
+
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> CornerMesh_Asset(TEXT("StaticMesh'/Game/Meshes/SM_Corner.SM_Corner'"));
+	CornerMesh = CornerMesh_Asset.Object;
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> WallMesh_Asset(TEXT("StaticMesh'/Game/Meshes/SM_Wall.SM_Wall'"));
+	WallMesh = WallMesh_Asset.Object;
+
+ 	static ConstructorHelpers::FObjectFinder<USoundCue> MachineNoises_Asset(TEXT("SoundCue'/Game/Sounds/SC_MachineNoises.SC_MachineNoises'"));
+ 	MachineNoiseSound = MachineNoises_Asset.Object;
+ 	static ConstructorHelpers::FObjectFinder<USoundCue> ExplosionSound_Asset(TEXT("SoundCue'/Game/Sounds/SC_Explosion.SC_Explosion'"));
+ 	ExplosionSound = ExplosionSound_Asset.Object;
+ 	static ConstructorHelpers::FObjectFinder<USoundCue> PlayerHurtSound_Asset(TEXT("SoundCue'/Game/Sounds/SC_Hurt.SC_Hurt'"));
+ 	PlayerHurtSound = PlayerHurtSound_Asset.Object;
+ 	static ConstructorHelpers::FObjectFinder<USoundCue> MachineWindDownSound_Asset(TEXT("SoundCue'/Game/Sounds/SC_WindDown.SC_WindDown'"));
+ 	MachineWindDownSound = MachineWindDownSound_Asset.Object;
+
+//	static ConstructorHelpers::FObjectFinder<UParticleSystem> ExplosionParticles_Asset(TEXT("ParticleSystem'/Game/Particles/P_Explosion.P_Explosion'"));
+//	ExplosionParticles = ExplosionParticles_Asset.Object;
+// 	static ConstructorHelpers::FObjectFinder<UParticleSystem> SmokeParticles_Asset(TEXT("ParticleSystem'/Game/Particles/P_Smoke.P_Smoke'"));
+// 	SmokeParticles = SmokeParticles_Asset.Object;
+// 	static ConstructorHelpers::FObjectFinder<UParticleSystem> FireParticles_Asset(TEXT("ParticleSystem'/Game/Particles/P_Fire.P_Fire'"));
+// 	FireParticles = FireParticles_Asset.Object;
 
 	GameboardData.Cols = 3;
 	GameboardData.Rows = 3;
@@ -70,20 +97,20 @@ void ATTBGameBoard::BuildGameboard()
 		{
 			FVector ButtonLoc = FVector((row * ButtonSpacing) - (GetBoardLength() / 2), (col * ButtonSpacing) - (GetBoardWidth() / 2), ButtonHeight);
 
-			UChildActorComponent* NewBtnComp = NewObject<UChildActorComponent>(this, FName(*("Button_" + FString::FromInt(col) + "," + FString::FromInt(row))));
-			NewBtnComp->SetupAttachment(this->GetRootComponent());
-			NewBtnComp->RegisterComponent();
+			if(ButtonClass)
+			{
+				FTransform SpawnXForm;
+				ATTBButton* NewButt = GetWorld()->SpawnActorDeferred<ATTBButton>(ButtonClass, FTransform(FRotator::ZeroRotator, GetActorLocation()), this, GetInstigator(), ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+				if (NewButt)
+				{
+					NewButt->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+					NewButt->SetActorRelativeLocation(ButtonLoc);
+					NewButt->Gameboard = this;
 
-			NewBtnComp->SetRelativeLocation(ButtonLoc);
-
-			if (ButtonClass)
-				NewBtnComp->SetChildActorClass(ButtonClass);
-
-			ATTBButton* NewBtn = Cast<ATTBButton>(NewBtnComp->GetChildActor());
-
-			NewBtn->Gameboard = this;
-			NewRow.AddUnique(NewBtn);
-			Buttons.Add(NewBtn);
+					UGameplayStatics::FinishSpawningActor(NewButt, SpawnXForm);
+					NewRow.AddUnique(NewButt);
+				}
+			}
 		}
 
 		FButtonGrid Row;
@@ -92,8 +119,6 @@ void ATTBGameBoard::BuildGameboard()
 	}
 
 	UE_LOG(LogTemp, Display, TEXT("%s"), *(this->GetName() + ": Buttons created - Cols: " + FString::FromInt(ButtonsGrid.Num()) + " Rows: " + FString::FromInt(ButtonsGrid[0].Rows.Num())));
-
-	OnButtonGridUpdated.Broadcast();
 
 	for (int32 i = 0; i < 4; i++)
 	{
@@ -157,6 +182,8 @@ void ATTBGameBoard::BuildGameboard()
 			NewGate->AttachToComponent(NewWallComp, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TEXT("Attach"));
 		}
 	}
+
+	OnButtonGridUpdated.Broadcast();
 }
 
 void ATTBGameBoard::OnShortCircuit()
@@ -170,7 +197,6 @@ void ATTBGameBoard::OnShortCircuit()
 	}
 }
 
-
 void ATTBGameBoard::ActivateBoard()
 {
 	bBoardIsActive = true;
@@ -181,6 +207,35 @@ void ATTBGameBoard::DeactivateBoard()
 	bBoardIsActive = false;
 	DeactivateButtons();
 }
+
+// TODO: Calling BP functions with timeline from a timer function is crashing out.  Come back to this.
+// void ATTBGameBoard::BeginPreCycle()
+// {
+// 	BoardState = EBoardState::BS_PreCycle;
+// 	SafeButtonCurrentIteration = 0;
+// 	GetWorldTimerManager().SetTimer(ChooseSafeButtonTimerHandle, this, &ATTBGameBoard::ChooseSafeButton, .1f, true);
+// }
+// 
+// void ATTBGameBoard::ChooseSafeButton()
+// {
+// 	ATTBButton* NewSafeButton = GetRandButton();
+// 	while (NewSafeButton == SafeButton)		// Prevent randomly selecting the same safe button twice in a row
+// 	{
+// 		SafeButton = GetRandButton();
+// 	}
+// 
+// 	SafeButtonCurrentIteration++;
+// 
+// 	if (SafeButtonCurrentIteration > SafeButtonChoiceIterations)
+// 	{
+// 		GetWorldTimerManager().ClearTimer(ChooseSafeButtonTimerHandle);
+// 		OnSafeButtonSet();
+// 	}
+// 	else
+// 	{
+// 		SafeButton->HandleColorTimeline(EColorFunction::CC_Blink);
+// 	}
+// }
 
 void ATTBGameBoard::Explode()
 {
@@ -236,19 +291,33 @@ TArray<class ATTBButton*> ATTBGameBoard::GetRow(int32 Index)
 	return Selection;
 }
 
+TArray<class ATTBButton*> ATTBGameBoard::GetAllButtons()
+{
+	TArray<ATTBButton*> Selection;
+	for (int32 i = 0; i< ButtonsGrid.Num(); i++)
+	{
+		for (int32 j = 0; j < ButtonsGrid.Num(); j++)
+		{
+			Selection.Add(ButtonsGrid[i].Rows[j]);
+		}
+	}
+
+	return Selection;
+}
+
 void ATTBGameBoard::ActivateButtons()
 {
-	for (ATTBButton* b : Buttons)
+	for (ATTBButton* b : GetAllButtons())
 	{
-		b->ActivateButton();
+		b->SetActive(true);
 	}
 }
 
 void ATTBGameBoard::DeactivateButtons()
 {
-	for (ATTBButton* b : Buttons)
+	for (ATTBButton* b : GetAllButtons())
 	{
-		b->DeactivateButton();
+		b->SetActive(false);
 	}
 }
 
@@ -377,7 +446,7 @@ void ATTBGameBoard::CycleGridSection(int32 Idx, EDirection Dir, EGridSectionType
 
 void ATTBGameBoard::OnSafeButtonSet()
 {
-	SafeButton->FlashButton(false);
+	SafeButton->HandleColorTimeline(EColorFunction::CC_BlinkAndHold);
 
 	// Start machine noises
 	if (MachineNoiseSound)
@@ -394,7 +463,7 @@ void ATTBGameBoard::BeginCycle()
 {
 	BoardState = EBoardState::BS_Cycle;
 	CycleOnTimer();
-	SafeButton->SlowFadeOut();
+	SafeButton->HandleColorTimeline(EColorFunction::CC_SlowFadeOut);
 }
 
 void ATTBGameBoard::OnCycleComplete()
@@ -403,8 +472,77 @@ void ATTBGameBoard::OnCycleComplete()
 	GetHud()->OnCycleComplete();
 	MachineNoiseAudioComp->FadeOut(1.f, 0.f);	// Stop machine noises
 
-	for (ATTBButton* b : Buttons)
-		ActivateButtons();
+	ActivateButtons();
+}
+
+void ATTBGameBoard::PrepCycle(ATTBButton* Button, EGridSectionType SectionType, EDirection Dir, bool bIsLeavingGrid)
+{
+	// Get movement direction as a unit vector based on movement direction
+	FVector MoveVect = (SectionType == EGridSectionType::GST_Column) ? GetActorForwardVector() : GetActorRightVector();
+	MoveVect *= (Dir == EDirection::MD_Forward) ? 1.f : -1.f;
+
+	// Get the final target location for the button
+	FVector TargetLoc = Button->GetActorLocation() + (MoveVect * ButtonSpacing);
+	TargetLoc.Z = ButtonHeight;
+
+	/*
+	* If the button is leaving the grid, we create a proxy in it's place to move off the grid.
+	* The actual button is moved into position to scroll onto the board.
+	*/
+	if (bIsLeavingGrid)
+	{
+		/*
+		* Spawn the proxy button.  This button scrolls off the grid instead of the actual grid buttons
+		*/
+		ATTBButton* Proxy = GetWorld()->SpawnActor<ATTBButton>(ButtonClass, Button->GetActorTransform());
+		Proxy->Gameboard = this;
+		Proxy->bIsPlaceholder = true;
+		Proxy->RetractButton();
+
+		FVector ProxyTargetLoc = GetNewButtonLoc(Proxy, SectionType, Dir);
+		ProxyTargetLoc.Z = 0.f;
+
+		// Get target rotation based on movement direction
+		FRotator TargetRot; // The rotation for a piece thats about to scroll onto the grid.
+		if (SectionType == EGridSectionType::GST_Column)
+			TargetRot = (Dir == EDirection::MD_Forward) ? FRotator(-90.f, 0.f, 0.f) : FRotator(90.f, 0.f, 0.f);
+		else
+			TargetRot = (Dir == EDirection::MD_Forward) ? FRotator(0.f, 0.f, 90.f) : FRotator(0.f, 0.f, -90.f);
+
+		// Move the proxy off the board
+		Proxy->MoveToNewSlot(FTransform(TargetRot.Quaternion(), ProxyTargetLoc));
+
+		/*
+		* The button that is going off grid is moved immediately to the opposite side of the board and is moved onto the grid
+		*/
+
+		float Span = (SectionType == EGridSectionType::GST_Column) ? GetBoardLength() : GetBoardWidth();
+		Span += ButtonSpacing;
+		Span *= (Dir == EDirection::MD_Forward) ? -1.f : 1.f;
+		FVector SpanVect = (SectionType == EGridSectionType::GST_Column) ? FVector(Span, 0.f, 0.f) : FVector(0.f, Span, 0.f);
+
+		// Move button to position on the opposite side of the grid in preparation to scroll onto the grid
+		Button->SetActorLocationAndRotation(Button->GetActorLocation() + SpanVect, (TargetRot * -1.f).Quaternion());
+			
+		Button->RetractImmediate();	// Start in retracted state
+		Button->ExtendButton();	// Extend as it scrolls onto the grid
+	}
+
+	// Perform movement
+	Button->MoveToNewSlot(FTransform(FRotator::ZeroRotator, GetNewButtonLoc(Button, SectionType, Dir)));
+}
+
+FVector ATTBGameBoard::GetNewButtonLoc(ATTBButton * Button, EGridSectionType SectionType, EDirection Dir)
+{
+	// Get movement direction as a unit vector based on movement direction
+	FVector MoveVect = (SectionType == EGridSectionType::GST_Column) ? GetActorForwardVector() : GetActorRightVector();
+	MoveVect *= (Dir == EDirection::MD_Forward) ? 1.f : -1.f;
+
+	// Get the final target location for the button
+	FVector TargetLoc = Button->GetActorLocation() + (MoveVect * ButtonSpacing);
+	TargetLoc.Z = ButtonHeight;
+
+	return TargetLoc;
 }
 
 UAudioComponent* ATTBGameBoard::PlaySound(USoundBase* Sound)
@@ -425,7 +563,7 @@ void ATTBGameBoard::ButtonClicked(ATTBButton * ClickedButton)
 
 	if (ClickedButton == SafeButton)
 	{
-		SafeButton->FadeSafeIn();
+		SafeButton->HandleColorTimeline(EColorFunction::CC_FadeIn);
 		GetWorldTimerManager().SetTimer(DelayTimerHandle1, this, &ATTBGameBoard::OnLevelSuccess, .5f);
 	}
 	else
@@ -437,10 +575,10 @@ void ATTBGameBoard::ButtonClicked(ATTBButton * ClickedButton)
 
 void ATTBGameBoard::OnLevelSuccess()
 {
-	for (ATTBButton* b : Buttons)
+	for (ATTBButton* b : GetAllButtons())
 	{
 		b->RetractButton();
-		b->FadeSafeIn();
+		b->HandleColorTimeline(EColorFunction::CC_FadeIn);
 	}
 	PlaySound(MachineWindDownSound);
 
@@ -451,8 +589,8 @@ void ATTBGameBoard::OnLevelSuccess()
 
 void ATTBGameBoard::OnLevelFailure()
 {
-	SafeButton->FadeSafeIn();
-	for (ATTBButton* b : Buttons)
+	SafeButton->HandleColorTimeline(EColorFunction::CC_FadeIn);
+	for (ATTBButton* b : GetAllButtons())
 	{
 		if (b != SafeButton)
 			b->RetractButton();
