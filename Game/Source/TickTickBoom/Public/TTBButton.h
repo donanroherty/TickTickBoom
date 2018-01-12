@@ -79,6 +79,8 @@ public:
 	// Sets default values for this actor's properties
 	ATTBButton();
 
+	virtual void BeginPlay()override;
+
 	UFUNCTION(BlueprintCallable)
 	void SetActive(bool bNewActive);
 

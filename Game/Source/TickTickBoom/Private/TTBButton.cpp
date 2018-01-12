@@ -77,6 +77,13 @@ ATTBButton::ATTBButton()
 	ColorTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("ColorTimeline"));
 }
 
+void ATTBButton::BeginPlay()
+{
+	Super::BeginPlay();
+	ButtonMaterialInstance = UMaterialInstanceDynamic::Create(Button->GetMaterial(0), this);
+	Button->SetMaterial(0, ButtonMaterialInstance);
+}
+
 void ATTBButton::SetActive(bool bNewActive)
 {
 	bIsActive = bNewActive;
