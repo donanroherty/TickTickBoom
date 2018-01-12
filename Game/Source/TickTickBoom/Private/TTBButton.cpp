@@ -11,8 +11,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/AudioComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
-#include "Materials/MaterialInstanceConstant.h"
-#include "DrawDebugHelpers.h"
 
 // Sets default values
 ATTBButton::ATTBButton()
@@ -66,26 +64,17 @@ ATTBButton::ATTBButton()
 
 	// Load sound assets.
 	static ConstructorHelpers::FObjectFinder<USoundCue> ClickSound_Asset(TEXT("SoundCue'/Game/Sounds/SC_Click.SC_Click'"));
-	check(ClickSound_Asset.Succeeded());
+	check(ClickSound_Asset.Succeeded())
 	ClickSound = ClickSound_Asset.Object;
 
 	static ConstructorHelpers::FObjectFinder<USoundCue> CycleClickSound_Asset(TEXT("SoundCue'/Game/Sounds/SC_CycleClicks.SC_CycleClicks'"));
-	check(CycleClickSound_Asset.Succeeded());
+	check(CycleClickSound_Asset.Succeeded())
 	CycleClickSound = ClickSound_Asset.Object;
-
-	static ConstructorHelpers::FObjectFinder<UMaterialInstanceConstant> ButtonMaterialInstance_Asset(TEXT("MaterialInstanceConstant'/Game/Materials/M_Plastic_Inst.M_Plastic_Inst'"));
-	check(ButtonMaterialInstance_Asset.Succeeded());
-	Button->SetMaterial(0, ButtonMaterialInstance_Asset.Object);
 
 	// Create timelines
 	MovementTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("MovementTimeline"));
 	TubeTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("TubeTimeline"));
 	ColorTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("ColorTimeline"));
-}
-
-void ATTBButton::BeginPlay()
-{
-	ButtonMaterialInstance = UMaterialInstanceDynamic::Create(Button->GetMaterial(0), this);
 }
 
 void ATTBButton::SetActive(bool bNewActive)
@@ -158,8 +147,6 @@ void ATTBButton::MovementTLFinishedCallback()
 
 void ATTBButton::HandleColorTL(EColorFunction InColorFunction)
 {
-	DrawDebugSphere(GetWorld(), GetActorLocation(), 1.f, 32, FColor::Red, false, 5.f);
-	UE_LOG(LogTemp, Warning, TEXT("%s"), *Gameboard->GetName());
 	UCurveFloat* Curve = BlinkCurve;
 
 	Curve =
