@@ -18,17 +18,13 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	class ATTBGameBoard* Gameboard;
 
-	class UTimelineComponent* FlipGateTimeline;
-
-	UPROPERTY(EditDefaultsOnly)
-	class UCurveFloat* FlipGateCurve;
-
-	// Sets default values for this actor's properties
 	ATTBGate();
 
 public:
 	/* Animate the gate opening and closing */
 	void FlipGate();
-	UFUNCTION()
-		void FlipGateTLCallback(float Val);
+	UFUNCTION(BlueprintImplementableEvent)
+	void DoFlipGate(float Rate);
+	UFUNCTION(BlueprintCallable)
+	void FlipGateTLCallback(float Val);
 };
