@@ -15,29 +15,27 @@
 // Sets default values
 ATTBButton::ATTBButton()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
-
 	BlinkTime = .3f;
 	RetractedButtonZ = - 2.f;
 	ButtonTargetHeight = 0.f;
 	bIsPlaceholder = false;
-	bIsActive = false;
-	bIsPlaceholder = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	RootComp = CreateDefaultSubobject<USceneComponent>(TEXT("RootComp"));
 	SetRootComponent(RootComp);
 
-	// Create geometry components
-	Casing = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Casing"));
-	Casing->AttachToComponent(RootComp, FAttachmentTransformRules::KeepRelativeTransform);
-	Tube = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Tube"));
-	Tube->AttachToComponent(Casing, FAttachmentTransformRules::KeepRelativeTransform);
-	Button = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Button"));
-	Button->AttachToComponent(Tube, FAttachmentTransformRules::KeepRelativeTransform);
+	/* Create geometry components */
+	CasingMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Casing"));
+	CasingMesh->AttachToComponent(RootComp, FAttachmentTransformRules::KeepRelativeTransform);
+	TubeMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Tube"));
+	TubeMesh->AttachToComponent(CasingMesh, FAttachmentTransformRules::KeepRelativeTransform);
+	ButtonMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Button"));
+	ButtonMesh->AttachToComponent(TubeMesh, FAttachmentTransformRules::KeepRelativeTransform);
 
-	Button->OnClicked.AddUniqueDynamic(this, &ATTBButton::OnButtonClicked);
+	/* Setup click event for button */
+	ButtonMesh->OnClicked.AddUniqueDynamic(this, &ATTBButton::OnButtonClicked);
 
+	/* Load curves */
 	static ConstructorHelpers::FObjectFinder<UCurveFloat> LinearCurve_Asset(TEXT("CurveFloat'/Game/Curves/Linear_Curve.Linear_Curve'"));
 	check(LinearCurve_Asset.Succeeded());
 	LinearCurve = LinearCurve_Asset.Object;
@@ -80,79 +78,65 @@ ATTBButton::ATTBButton()
 void ATTBButton::BeginPlay()
 {
 	Super::BeginPlay();
-	ButtonMaterialInstance = UMaterialInstanceDynamic::Create(Button->GetMaterial(0), this);
-	Button->SetMaterial(0, ButtonMaterialInstance);
-}
-
-void ATTBButton::SetActive(bool bNewActive)
-{
-	bIsActive = bNewActive;
-}
-
-void ATTBButton::RetractButton()
-{
-	HandleExtension(ETubeAction::TS_Retract);
-}
-
-void ATTBButton::ExtendButton()
-{
-	HandleExtension(ETubeAction::TS_Extend);
+	// Create a material instance to animate button color
+	ButtonMaterialInstance = UMaterialInstanceDynamic::Create(ButtonMesh->GetMaterial(0), this);
+	ButtonMesh->SetMaterial(0, ButtonMaterialInstance);
 }
 
 void ATTBButton::RetractImmediate()
 {
-	Tube->SetRelativeLocation(FVector(0.f, 0.f, RetractedButtonZ));
+	TubeMesh->SetRelativeLocation(FVector(0.f, 0.f, RetractedButtonZ));
 }
 
-void ATTBButton::HandleExtension(ETubeAction NewTubeAction)
+void ATTBButton::SetTubeExtension(ETubeAction NewTubeAction)
 {
 	ButtonTargetHeight = (NewTubeAction == ETubeAction::TS_Extend) ? 0.f : RetractedButtonZ;	// Set target height based on if this is a retraction or extension
 
 	FOnTimelineFloat tickCallback{};	// Called on each tick of the timeline
-	tickCallback.BindUFunction(this, FName{ TEXT("ExtensionTLCallback") });
+	tickCallback.BindUFunction(this, FName{ TEXT("SetTubeExtensionTLCallback") });
 	TubeTimeline->AddInterpFloat(LinearCurve, tickCallback, FName{ TEXT("TubeAnimation") });
 	TubeTimeline->SetPlayRate(Gameboard->GetGameboardTimeScale());
 
 	TubeTimeline->PlayFromStart();
 }
 
-void ATTBButton::ExtensionTLCallback(float Val)
+void ATTBButton::SetTubeExtensionTLCallback(float Val)
 {
-	float NewZ = FMath::Lerp(Tube->RelativeLocation.Z, ButtonTargetHeight, Val);
-	Tube->SetRelativeLocation(FVector(0.f, 0.f, NewZ));
+	float NewZ = FMath::Lerp(TubeMesh->RelativeLocation.Z, ButtonTargetHeight, Val);
+	TubeMesh->SetRelativeLocation(FVector(0.f, 0.f, NewZ));
 }
 
-void ATTBButton::MoveToNewSlot(FTransform TargetTransform)
+void ATTBButton::MoveButton(FTransform TargetTransform)
 {
 	PlaySound(CycleClickSound);
 	MoveTargetXForm = TargetTransform;
 
 	FOnTimelineEventStatic finishedCallback{};	// Called when the timeline completes
-	finishedCallback.BindUFunction(this, FName{TEXT("MovementTLFinishedCallback")});
+	finishedCallback.BindUFunction(this, FName{TEXT("MoveButtonFinishedCallback")});
 	MovementTimeline->SetTimelineFinishedFunc(finishedCallback);
 
 	FOnTimelineFloat tickCallback{};	// Called on each tick of the timeline
-	tickCallback.BindUFunction(this, FName{ TEXT("MovementTLTickCallback") });
+	tickCallback.BindUFunction(this, FName{ TEXT("MoveButtonTickCallback") });
 
 	MovementTimeline->AddInterpFloat(LinearCurve, tickCallback, FName{ TEXT("MovementAnimation") });
 	MovementTimeline->SetPlayRate(Gameboard->GetGameboardTimeScale());
 	MovementTimeline->PlayFromStart();
 }
 
-void ATTBButton::MovementTLTickCallback(float Val)
+void ATTBButton::MoveButtonTickCallback(float Val)
 {
 	FVector NewLoc = FMath::Lerp(GetActorLocation(), MoveTargetXForm.GetLocation(), Val);
 	FRotator NewRot = FMath::Lerp(GetActorRotation(), MoveTargetXForm.GetRotation().Rotator(), Val);
 	SetActorLocationAndRotation(NewLoc, NewRot);
 }
 
-void ATTBButton::MovementTLFinishedCallback()
+void ATTBButton::MoveButtonFinishedCallback()
 {
 	if (bIsPlaceholder)
 		Destroy();
 }
 
-void ATTBButton::HandleColorTL(EColorFunction InColorFunction)
+void ATTBButton::ChangeColor(EColorFunction InColorFunction)
 {
 	UCurveFloat* Curve = BlinkCurve;
 
@@ -168,7 +152,7 @@ void ATTBButton::HandleColorTL(EColorFunction InColorFunction)
 		: 1.f / 0.3f;
 	
 	FOnTimelineFloat tickCallback{};	// Called on each tick of the timeline
-	tickCallback.BindUFunction(this, FName{ TEXT("SetColorTLCallback") });	
+	tickCallback.BindUFunction(this, FName{ TEXT("ChangeColorTLCallback") });	
 	ColorTimeline->AddInterpFloat(Curve, tickCallback, FName{ TEXT("ColorAnimation") });
 	ColorTimeline->SetPlayRate(PlayRate);
 
@@ -177,12 +161,12 @@ void ATTBButton::HandleColorTL(EColorFunction InColorFunction)
 	PlaySound(ClickSound);
 }
 
-void ATTBButton::SetColorTLCallback(float Val)
+void ATTBButton::ChangeColorTLCallback(float Val)
 {
 	ButtonMaterialInstance->SetScalarParameterValue(TEXT("ColorBlend"), Val);
 }
 
-void ATTBButton::HandlePressButtonTL()
+void ATTBButton::PressButton()
 {	
 	if (!Gameboard->bButtonsActive)
 		return;
@@ -191,30 +175,30 @@ void ATTBButton::HandlePressButtonTL()
 	Gameboard->SetButtonsActive(false);
 
 	FOnTimelineEventStatic finishedCallback{};	// Called when the timeline completes
-	finishedCallback.BindUFunction(this, FName{ TEXT("OnPressButtonFinishedCallback") });
+	finishedCallback.BindUFunction(this, FName{ TEXT("PressButtonFinishedCallback") });
 	MovementTimeline->SetTimelineFinishedFunc(finishedCallback);
 
 	FOnTimelineFloat tickCallback{};	// Called on each tick of the timeline
-	tickCallback.BindUFunction(this, FName{ TEXT("OnPressButtonTickCallback") });
+	tickCallback.BindUFunction(this, FName{ TEXT("PressButtonTickCallback") });
 
 	MovementTimeline->AddInterpFloat(ValleyCurve, tickCallback, FName{ TEXT("MovementAnimation") });
 	MovementTimeline->PlayFromStart();
 }
 
-void ATTBButton::OnPressButtonTickCallback(float Val)
+void ATTBButton::PressButtonTickCallback(float Val)
 {
-	float NewZ = FMath::Lerp(Button->RelativeLocation.Z, Val, 1);
-	Button->SetRelativeLocation(FVector(0.f, 0.f, NewZ));
+	float NewZ = FMath::Lerp(ButtonMesh->RelativeLocation.Z, Val, 1);
+	ButtonMesh->SetRelativeLocation(FVector(0.f, 0.f, NewZ));
 }
 
-void ATTBButton::OnPressButtonFinishedCallback()
+void ATTBButton::PressButtonFinishedCallback()
 {
 	Gameboard->ButtonClicked(this);
 }
 
 void ATTBButton::OnButtonClicked(UPrimitiveComponent* pComponent, FKey ButtonPressed)
 {
-	HandlePressButtonTL();
+	PressButton();
 }
 
 UAudioComponent* ATTBButton::PlaySound(USoundBase* Sound)

@@ -12,113 +12,94 @@ class TICKTICKBOOM_API ATTBButton : public AActor
 {
 	GENERATED_BODY()
 	
-public:		
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-		class USceneComponent* RootComp;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-		class UStaticMeshComponent* Casing;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-		class UStaticMeshComponent* Tube;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-		class UStaticMeshComponent* Button;
+protected:	
+	UPROPERTY(VisibleAnywhere)
+	class USceneComponent* RootComp;
+	UPROPERTY(VisibleAnywhere)
+	class UStaticMeshComponent* CasingMesh;
+	UPROPERTY(VisibleAnywhere)
+	class UStaticMeshComponent* TubeMesh;
+	UPROPERTY(VisibleAnywhere)
+	class UStaticMeshComponent* ButtonMesh;
 
-	UPROPERTY(VisibleAnywhere)
-		class UTimelineComponent* MovementTimeline;
-	UPROPERTY(VisibleAnywhere)
-		class UTimelineComponent* TubeTimeline;
-	UPROPERTY(VisibleAnywhere)
-		class UTimelineComponent* ColorTimeline;
-	UPROPERTY(VisibleAnywhere)
-		class UTimelineComponent* PressButtonTimeline;
+	class UTimelineComponent* MovementTimeline;
+	class UTimelineComponent* TubeTimeline;
+	class UTimelineComponent* ColorTimeline;
+	class UTimelineComponent* PressButtonTimeline;
+
+	/* Timeline Curves */
+	UPROPERTY()
+	class UCurveFloat* LinearCurve;
+	UPROPERTY()
+	class UCurveFloat* BlinkCurve;
+	UPROPERTY()
+	class UCurveFloat* BlinkAndHoldCurve;
+	UPROPERTY()
+	class UCurveFloat* LinearReverseCurve;
+	UPROPERTY()
+	class UCurveFloat* SlowFadeOutCurve;
+	UPROPERTY()
+	class UCurveFloat* ValleyCurve;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class USoundBase* ClickSound;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class USoundBase* CycleClickSound;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ExposeOnSpawn = "true"))
+public:
 	class ATTBGameBoard* Gameboard;
+	bool bIsPlaceholder;
 
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
-		float BlinkTime;
+protected:
+	UPROPERTY(EditDefaultsOnly)
+	float BlinkTime;
+	UPROPERTY(EditDefaultsOnly)
+	float RetractedButtonZ;
 
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
-		float RetractedButtonZ;
-
-	UPROPERTY(BlueprintReadWrite)
-		float ButtonTargetHeight;
-
-	UPROPERTY(BlueprintReadWrite)
-		FTransform MoveTargetXForm;
-
-	UPROPERTY(BlueprintReadWrite, meta = (ExposeOnSpawn = "true"))
-		bool bIsPlaceholder;
-
-	UPROPERTY(BlueprintReadWrite)
-		bool bIsActive;
-
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
-		UMaterialInstanceDynamic* ButtonMaterialInstance;
-
-	/* One second, linear curve.  Scaled and used for various timelines */
-	UPROPERTY()
-	class UCurveFloat* LinearCurve;
-	/* 0.3 second curve for quick On/Off animation */
-	UPROPERTY()
-		class UCurveFloat* BlinkCurve;
-	UPROPERTY()
-		class UCurveFloat* BlinkAndHoldCurve;
-	UPROPERTY()
-		class UCurveFloat* LinearReverseCurve;
-	UPROPERTY()
-		class UCurveFloat* SlowFadeOutCurve;
-	UPROPERTY()
-		class UCurveFloat* ValleyCurve;
+	UMaterialInstanceDynamic* ButtonMaterialInstance;
+	float ButtonTargetHeight;
+	FTransform MoveTargetXForm;
 
 public:
-	// Sets default values for this actor's properties
 	ATTBButton();
 
 	virtual void BeginPlay()override;
-
-	UFUNCTION(BlueprintCallable)
-	void SetActive(bool bNewActive);
-
-	UFUNCTION(BlueprintCallable)
-	void RetractButton();
-	UFUNCTION(BlueprintCallable)
-	void ExtendButton();
 	
+	/* Put button into retracted state.  Does not animate */
 	UFUNCTION(BlueprintCallable)
 	void RetractImmediate();
 
+	/* Extend the tube up and down */
 	UFUNCTION(BlueprintCallable)
-	void HandleExtension(ETubeAction NewTubeAction);
+	void SetTubeExtension(ETubeAction NewTubeAction);
 	UFUNCTION()
-	void ExtensionTLCallback(float Val);
+	void SetTubeExtensionTLCallback(float Val);
 
+	/* Move button to new position on grid */
 	UFUNCTION(BlueprintCallable)
-	void MoveToNewSlot(FTransform TargetTransform);
+	void MoveButton(FTransform TargetTransform);
 	UFUNCTION()
-	void MovementTLTickCallback(float Val);
+	void MoveButtonTickCallback(float Val);
 	UFUNCTION()
-	void MovementTLFinishedCallback();
+	void MoveButtonFinishedCallback();
 
+	/* Animate the color of the button */
 	UFUNCTION(BlueprintCallable)
-	UAudioComponent* PlaySound(class USoundBase * Sound);
+	void ChangeColor(EColorFunction InColorFunction);
+	UFUNCTION()
+	void ChangeColorTLCallback(float Val);
 
+	/* Animated button up and down */
 	UFUNCTION(BlueprintCallable)
-	void HandleColorTL(EColorFunction InColorFunction);
+	void PressButton();
 	UFUNCTION()
-	void SetColorTLCallback(float Val);
-
-	UFUNCTION(BlueprintCallable)
-	void HandlePressButtonTL();
+	void PressButtonTickCallback(float Val);
 	UFUNCTION()
-	void OnPressButtonTickCallback(float Val);
-	UFUNCTION()
-		void OnPressButtonFinishedCallback();
+	void PressButtonFinishedCallback();
 
 	UFUNCTION()
 	void OnButtonClicked(UPrimitiveComponent* pComponent, FKey ButtonPressed);
+
+	UFUNCTION(BlueprintCallable)
+		UAudioComponent* PlaySound(class USoundBase * Sound);
 };

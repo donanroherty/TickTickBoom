@@ -143,14 +143,15 @@ void ATTBGameBoard::BuildGameboard()
 		NewCornerComp->SetRelativeLocation(CornerLoc);
 		NewCornerComp->SetRelativeRotation(FRotator(0.f, 90.f * i, 0.f));
 
+		/*
+			Walls and gates
+		*/
 		float WallCount =
 			i == 0 ? GameboardData.Rows		// Bottom left
 			: i == 1 ? GameboardData.Cols	// Top left
 			: i == 2 ? GameboardData.Rows	// Top right
 			: GameboardData.Cols;			// Bottom right
-
-
-		//Walls and gates
+	
 		for (int32 j = 0; j < WallCount; j++)
 		{
 			// Make walls
@@ -235,7 +236,7 @@ void ATTBGameBoard::ChooseSafeButton()
 	}
 	else
 	{
-		SafeButton->HandleColorTL(EColorFunction::CC_Blink);
+		SafeButton->ChangeColor(EColorFunction::CC_Blink);
 	}
 }
 
@@ -343,7 +344,6 @@ bool ATTBGameBoard::IsButtonTravelingOffBoard(TArray<ATTBButton*> ButtonArray, i
 		|| (Dir == EDirection::MD_Backward && Index == 0); // If the button is first in the array and is traveling backward...
 }
 
-
 void ATTBGameBoard::CycleButtons()
 {
 	/*
@@ -421,7 +421,6 @@ void ATTBGameBoard::CycleButtons()
 	}
 }
 
-
 void ATTBGameBoard::CycleGridSection(int32 Idx, EDirection Dir, EGridSectionType SectionType)
 {
 	// Create a temporary array of the selected col/row
@@ -461,7 +460,7 @@ void ATTBGameBoard::CycleGridSection(int32 Idx, EDirection Dir, EGridSectionType
 
 void ATTBGameBoard::OnSafeButtonSet()
 {
-	SafeButton->HandleColorTL(EColorFunction::CC_BlinkAndHold);
+	SafeButton->ChangeColor(EColorFunction::CC_BlinkAndHold);
 
 	// Start machine noises
 	if (MachineNoiseSound)
@@ -478,12 +477,13 @@ void ATTBGameBoard::BeginCycle()
 {
 	BoardState = EBoardState::BS_Cycle;
 	CycleOnTimer();
-	SafeButton->HandleColorTL(EColorFunction::CC_SlowFadeOut);
+	SafeButton->ChangeColor(EColorFunction::CC_SlowFadeOut);
 }
 
 void ATTBGameBoard::CycleOnTimer()
 {
-	CycleCurrentIteration = 0;	GetWorldTimerManager().SetTimer(CycleTimerHandle, this, &ATTBGameBoard::Cycle, 1 / GetGameboardTimeScale(), true);
+	CycleCurrentIteration = 0;
+	GetWorldTimerManager().SetTimer(CycleTimerHandle, this, &ATTBGameBoard::Cycle, 1 / GetGameboardTimeScale(), true);
 }
 
 void ATTBGameBoard::Cycle()
@@ -520,7 +520,7 @@ void ATTBGameBoard::PrepCycle(ATTBButton* Button, EGridSectionType SectionType, 
 		ATTBButton* Proxy = GetWorld()->SpawnActor<ATTBButton>(ButtonClass, Button->GetActorTransform());
 		Proxy->Gameboard = this;
 		Proxy->bIsPlaceholder = true;
-		Proxy->RetractButton();
+		Proxy->SetTubeExtension(ETubeAction::TS_Retract);
 
 		FVector ProxyTargetLoc = GetNewButtonLoc(Proxy, SectionType, Dir);
 		ProxyTargetLoc.Z = 0.f;
@@ -533,7 +533,7 @@ void ATTBGameBoard::PrepCycle(ATTBButton* Button, EGridSectionType SectionType, 
 			TargetRot = (Dir == EDirection::MD_Forward) ? FRotator(0.f, 0.f, 90.f) : FRotator(0.f, 0.f, -90.f);
 
 		// Move the proxy off the board
-		Proxy->MoveToNewSlot(FTransform(TargetRot.Quaternion(), ProxyTargetLoc));
+		Proxy->MoveButton(FTransform(TargetRot.Quaternion(), ProxyTargetLoc));
 
 		/*
 		* The button that is going off grid is moved immediately to the opposite side of the board and is moved onto the grid
@@ -546,11 +546,11 @@ void ATTBGameBoard::PrepCycle(ATTBButton* Button, EGridSectionType SectionType, 
 		// Move button to position on the opposite side of the grid in preparation to scroll onto the grid
 		Button->SetActorLocationAndRotation(Button->GetActorLocation() + SpanVect, (TargetRot * -1.f).Quaternion());
 		Button->RetractImmediate();	// Start in retracted state
-		Button->ExtendButton();	// Extend as it scrolls onto the grid
+		Button->SetTubeExtension(ETubeAction::TS_Extend);	// Extend as it scrolls onto the grid
 	}
 
 	// Perform movement
-	Button->MoveToNewSlot(FTransform(FRotator::ZeroRotator, GetNewButtonLoc(Button, SectionType, Dir)));
+	Button->MoveButton(FTransform(FRotator::ZeroRotator, GetNewButtonLoc(Button, SectionType, Dir)));
 }
 
 FVector ATTBGameBoard::GetNewButtonLoc(ATTBButton * Button, EGridSectionType SectionType, EDirection Dir)
@@ -582,7 +582,7 @@ void ATTBGameBoard::ButtonClicked(ATTBButton * ClickedButton)
 
 	if (ClickedButton == SafeButton)
 	{
-		SafeButton->HandleColorTL(EColorFunction::CC_FadeIn);
+		SafeButton->ChangeColor(EColorFunction::CC_FadeIn);
 		GetWorldTimerManager().SetTimer(DelayTimerHandle1, this, &ATTBGameBoard::OnLevelSuccess, .5f);
 	}
 	else
@@ -595,8 +595,8 @@ void ATTBGameBoard::OnLevelSuccess()
 {
 	for (ATTBButton* b : GetAllButtons())
 	{
-		b->RetractButton();
-		b->HandleColorTL(EColorFunction::CC_FadeIn);
+		b->SetTubeExtension(ETubeAction::TS_Retract);
+		b->ChangeColor(EColorFunction::CC_FadeIn);
 	}
 	PlaySound(MachineWindDownSound);
 
@@ -607,11 +607,11 @@ void ATTBGameBoard::OnLevelSuccess()
 
 void ATTBGameBoard::OnLevelFailure()
 {
-	SafeButton->HandleColorTL(EColorFunction::CC_FadeIn);
+	SafeButton->ChangeColor(EColorFunction::CC_FadeIn);
 	for (ATTBButton* b : GetAllButtons())
 	{
 		if (b != SafeButton)
-			b->RetractButton();
+			b->SetTubeExtension(ETubeAction::TS_Retract);
 	}
 
 	DeactivateBoard();
