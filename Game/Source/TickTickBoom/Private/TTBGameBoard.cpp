@@ -258,7 +258,7 @@ TArray<class ATTBButton*> ATTBGameBoard::GetAllButtons()
 	TArray<ATTBButton*> Selection;
 	for (int32 i = 0; i< ButtonsGrid.Num(); i++)
 	{
-		for (int32 j = 0; j < ButtonsGrid.Num(); j++)
+		for (int32 j = 0; j < ButtonsGrid[i].Rows.Num(); j++)
 		{
 			Selection.Add(ButtonsGrid[i].Rows[j]);
 		}
@@ -276,7 +276,7 @@ bool ATTBGameBoard::GetButtonIndex(ATTBButton* Button, int32 &OutCol, int32 &Out
 {
 	for (int32 i = 0; i < ButtonsGrid.Num(); i++)
 	{
-		for (int32 j = 0; j < ButtonsGrid.Num(); j++)
+		for (int32 j = 0; j < ButtonsGrid[i].Rows.Num(); j++)
 		{
 			if (ButtonsGrid[i].Rows[j] == Button)
 			{
