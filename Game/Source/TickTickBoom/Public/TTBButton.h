@@ -42,9 +42,9 @@ protected:
 	class UCurveFloat* ButtonPressCurve;
 
 	UPROPERTY(EditDefaultsOnly)
-		class USoundBase* ClickSound;
+	class USoundBase* ClickSound;
 	UPROPERTY(EditDefaultsOnly)
-		class USoundBase* CycleClickSound;
+	class USoundBase* CycleClickSound;
 
 public:
 	class ATTBGameBoard* Gameboard;
