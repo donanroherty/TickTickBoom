@@ -7,8 +7,6 @@
 #include "TTBTypes.h"
 #include "TTBGameBoard.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FButtonGridUpdated);
-
 UCLASS()
 class TICKTICKBOOM_API ATTBGameBoard : public AActor
 {
@@ -17,203 +15,150 @@ class TICKTICKBOOM_API ATTBGameBoard : public AActor
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	class USceneComponent* RootComp;
-
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	class UAudioComponent* MachineNoiseAudioComp;
-
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	class USpotLightComponent* SpotLight;
 
-	/* Data used to build the gameboard and ruleset */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta=(ExposeOnSpawn="true"))
+	/* Data used to build the gameboard */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	FGameboardData GameboardData;
 
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<class ATTBButton> ButtonClass;
-
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<class ATTBGate> GateClass;
-
-	UPROPERTY(EditDefaultsOnly)
-	UStaticMesh* CornerMesh;
-
-	UPROPERTY(EditDefaultsOnly)
-	UStaticMesh* WallMesh;
-
 	/* The safe button the player should track and press */
-	UPROPERTY(BlueprintReadWrite)
 	class ATTBButton* SafeButton;
+	TArray<class ATTBGate*> Gates;
+	TArray<FButtonGrid> ButtonsGrid;
 
-	UPROPERTY(BlueprintReadWrite)
 	bool bBoardIsActive;
-
 	bool bButtonsActive;
+	EBoardState BoardState;
+	int32 ButtonChoiceIteration;
+	int32 CycleIteration;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
 	float ButtonSpacing;
-
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
 	float ButtonHeight;
-
 	UPROPERTY(BlueprintReadWrite)
-	int32 SafeButtonChoiceIterations;
-	/* Iterated each loop of ChooseSafeButton() to control max iterations */
-	UPROPERTY(BlueprintReadWrite)
-	int32 SafeButtonCurrentIteration;
-	UPROPERTY(BlueprintReadWrite)
-	int32 CycleCurrentIteration;
-
+	int32 ButtonChoiceMaxIterations;
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
 	int32 CountdownSeconds;
-
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
 	int32 SafeButtonCycleBias;
 
-	UPROPERTY(BlueprintReadWrite)
-	EBoardState BoardState;
+	// Geometry
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<class ATTBButton> ButtonClass;
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<class ATTBGate> GateClass;
+	UPROPERTY(EditDefaultsOnly)
+	UStaticMesh* CornerMesh;
+	UPROPERTY(EditDefaultsOnly)
+	UStaticMesh* WallMesh;
 
-	UPROPERTY(BlueprintReadWrite)
-	TArray<class ATTBGate*> Gates;
-
-	UPROPERTY(BlueprintReadWrite)
-	TArray<FButtonGrid> ButtonsGrid;
-
-	/* Delegates */
-	/* Called when the button grid is updated */
-	UPROPERTY(BlueprintAssignable, BlueprintCallable)
-	FButtonGridUpdated OnButtonGridUpdated;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	// Sounds
+	UPROPERTY(EditDefaultsOnly)
 	class USoundBase* MachineNoiseSound;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UPROPERTY(EditDefaultsOnly)
 	class USoundBase* ExplosionSound;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UPROPERTY(EditDefaultsOnly)
 	class USoundBase* PlayerHurtSound;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UPROPERTY(EditDefaultsOnly)
 	class USoundBase* MachineWindDownSound;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	// Effects
+	UPROPERTY(EditDefaultsOnly)
 	class UParticleSystem* ExplosionParticles;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UPROPERTY(EditDefaultsOnly)
 	class UParticleSystem* SmokeParticles;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UPROPERTY(EditDefaultsOnly)
 	class UParticleSystem* FireParticles;
 
+	// Timer handles
 	FTimerHandle BeginCycleTimerHandle;
 	FTimerHandle DelayTimerHandle1;
 	FTimerHandle DelayTimerHandle2;
-	UPROPERTY(BlueprintReadWrite)
 	FTimerHandle ChooseSafeButtonTimerHandle;
-	UPROPERTY(BlueprintReadWrite)
 	FTimerHandle CycleTimerHandle;
 
 public:	
 	// Sets default values for this actor's properties
 	ATTBGameBoard();
 
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
-public:	
+public:
+	/* Build the gameboard to GameboardData spec */
 	void BuildGameboard();
 
-	UFUNCTION(BlueprintCallable)
+	/* Called when player tries to short circuit the board */
+	UFUNCTION()
 	void OnShortCircuit();
 
-	UFUNCTION(BlueprintCallable)
+	/* Set board active */
 	void ActivateBoard();
 
-	UFUNCTION(BlueprintCallable)
+	/* Set board and buttons inactive */
 	void DeactivateBoard();
 
-	UFUNCTION(BlueprintCallable)
+	/* Initiates safe button selection */
 	void BeginPreCycle();
 
-	UFUNCTION(BlueprintCallable)
+	/* Gets a random button to be the safe button */
 	void ChooseSafeButton();
 
-	UFUNCTION(BlueprintCallable)
+	/* Wraps up safe button selection and calls BeginCycle()  */
 	void OnSafeButtonSet();
 
-	UFUNCTION(BlueprintCallable)
+	/* Prepares board to cycle and calls the cycle simulation in a loop */
 	void BeginCycle();
 
-	UFUNCTION(BlueprintCallable)
-	void CycleOnTimer();
-
-	UFUNCTION(BlueprintCallable)
-	void Cycle();
-
-	UFUNCTION(BlueprintCallable)
+	/* Called when the board is finished cycling */
 	void OnCycleComplete();
 
-	UFUNCTION(BlueprintCallable)
-	void PrepCycle(class ATTBButton* Button, EGridSectionType SectionType, EDirection Dir, bool bIsLeavingGrid);
-
+	/* Get the position a button should cycle to */
 	FVector GetNewButtonLoc(class ATTBButton* Button, EGridSectionType SectionType, EDirection Dir);
 
-	UFUNCTION(BlueprintCallable)
+	/* Play audio */
 	UAudioComponent* PlaySound(USoundBase* Sound);
 	
 	/* Called when the player presses a button */
-	UFUNCTION(BlueprintCallable)
 	void ButtonClicked(class ATTBButton* ClickedButton);
-
-	UFUNCTION(BlueprintCallable)
-	void OnLevelSuccess();
-
-	UFUNCTION(BlueprintCallable)
-	void OnLevelFailure();
+	
+	/* Called when the player completes a stage */
+	void CompleteStage();
+	/* Called when a player fails a stage */
+	void FailStage();
 
 	/* Plays sounds and effects when the gameboard explodes */
-	UFUNCTION(BlueprintCallable)
 	void Explode();
 
-
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
+	/* Get total width of the board */
 	float GetBoardWidth();
 
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
+	/* Get total length of the board */
 	float GetBoardLength();
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
 	float GetGameboardTimeScale();
 
-	UFUNCTION(BlueprintCallable, Category = Gameboard)
+	/* Get a random button in the grid */
 	class ATTBButton* GetRandButton();
 
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
+	/* Get all buttons at a 2d grid index */
 	class ATTBButton* GetButtonByIndex(int32 Col, int32 Row);
 
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
+	/* Gets all buttons in a grid column */
 	TArray<class ATTBButton*> GetColumn(int32 Index);
-
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
+	/* Gets all buttons in a grid row */
 	TArray<class ATTBButton*> GetRow(int32 Index);
-
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
+	/* Get all buttons on the board */
 	TArray<class ATTBButton*> GetAllButtons();
 
-	UFUNCTION(BlueprintCallable, Category = Buttons)
+	/* Set active state of all buttons on the board */
 	void SetButtonsActive(bool bNewActive);
 
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
-	class ATTBHud* GetHud();
-
 	/* Returns a button by grid index */
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
 	bool GetButtonIndex(ATTBButton* Button, int32 &OutCol, int32 &OutRow);
 
-	// Find out if the button at index is the button traveling off the board and should wrap to the other side
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
-	bool IsButtonTravelingOffBoard(TArray<ATTBButton*> ButtonArray, int32 Index, EDirection Dir);
-
-	UFUNCTION(BlueprintCallable, Category = Gameboard)
-		void CycleButtons();
-
-	/* Switch the positions of buttons in the 2D grid array */
-	UFUNCTION(BlueprintCallable, Category = Gameboard)
-		void CycleGridSection(int32 Idx, EDirection Dir, EGridSectionType SectionType);
-
+	/* Performs a single cycle, playing all animations and updating the grid */
+	void SimulateCycle();
 };

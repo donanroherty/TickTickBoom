@@ -56,7 +56,7 @@ ATTBGameBoard::ATTBGameBoard()
 	bBoardIsActive = true;
 	ButtonSpacing = 10.f;
 	ButtonHeight = 10.f;
-	SafeButtonChoiceIterations = 20;
+	ButtonChoiceMaxIterations = 20;
 	CountdownSeconds = 3;
 	SafeButtonCycleBias = 2;
 	BoardState = EBoardState::BS_PreCycle;
@@ -75,20 +75,8 @@ ATTBGameBoard::ATTBGameBoard()
 	SpotLight->AttenuationRadius = 300.f;
 }
 
-// Called when the game starts or when spawned
-void ATTBGameBoard::BeginPlay()
-{
-	Super::BeginPlay();
-
-	ATTBGameState* GS = Cast<ATTBGameState>(GetWorld()->GetGameState());
-	if (GS)
-		GS->OnShortCircuit.AddDynamic(this, &ATTBGameBoard::OnShortCircuit);
-}
-
 void ATTBGameBoard::BuildGameboard()
 {
-	// Build the gameboard
-
 	// Create buttons
 	for (int32 col = 0; col < GameboardData.Cols; col++)	// Columns
 	{
@@ -186,14 +174,13 @@ void ATTBGameBoard::BuildGameboard()
 			}
 		}
 	}	
-	OnButtonGridUpdated.Broadcast();
 }
 
 void ATTBGameBoard::OnShortCircuit()
 {
-	ATTBGameMode* GM = Cast<ATTBGameMode>(GetWorld()->GetAuthGameMode());
-	
-	if (GM && GM->GetGameBoard() == this)
+	ATTBGameState* GS = Cast<ATTBGameState>(GetWorld()->GetGameState());
+
+	if (GS && GS->GetGameBoard() == this)
 	{
 		SetButtonsActive(false);
 		BeginPreCycle();
@@ -214,7 +201,7 @@ void ATTBGameBoard::DeactivateBoard()
 void ATTBGameBoard::BeginPreCycle()
 {
 	BoardState = EBoardState::BS_PreCycle;
-	SafeButtonCurrentIteration = 0;
+	ButtonChoiceIteration = 0;
 	GetWorldTimerManager().SetTimer(ChooseSafeButtonTimerHandle, this, &ATTBGameBoard::ChooseSafeButton, .1f, true);
 }
 
@@ -227,9 +214,9 @@ void ATTBGameBoard::ChooseSafeButton()
 	}
 	SafeButton = NewSafeButton;
 
-	SafeButtonCurrentIteration++;
+	ButtonChoiceIteration++;
 
-	if (SafeButtonCurrentIteration > SafeButtonChoiceIterations)
+	if (ButtonChoiceIteration > ButtonChoiceMaxIterations)
 	{
 		GetWorldTimerManager().ClearTimer(ChooseSafeButtonTimerHandle);
 		OnSafeButtonSet();
@@ -313,12 +300,6 @@ void ATTBGameBoard::SetButtonsActive(bool bNewActive)
 	bButtonsActive = bNewActive;
 }
 
-
-ATTBHud* ATTBGameBoard::GetHud()
-{	
-	return Cast<ATTBHud>(GetWorld()->GetFirstPlayerController()->GetHUD());
-}
-
 bool ATTBGameBoard::GetButtonIndex(ATTBButton* Button, int32 &OutCol, int32 &OutRow)
 {
 	for (int32 i = 0; i < ButtonsGrid.Num(); i++)
@@ -329,59 +310,53 @@ bool ATTBGameBoard::GetButtonIndex(ATTBButton* Button, int32 &OutCol, int32 &Out
 			{
 				OutCol = i;
 				OutRow = j;
-
 				return true;
 			}
 		}
 	}
-
 	return false;
 }
 
-bool ATTBGameBoard::IsButtonTravelingOffBoard(TArray<ATTBButton*> ButtonArray, int32 Index, EDirection Dir)
-{
-	return (Dir == EDirection::MD_Forward && Index == ButtonArray.Num() - 1) // If the button is the last in the array and is traveling forward...
-		|| (Dir == EDirection::MD_Backward && Index == 0); // If the button is first in the array and is traveling backward...
-}
-
-void ATTBGameBoard::CycleButtons()
+void ATTBGameBoard::SimulateCycle()
 {
 	/*
-	Select sections (columns or rows) to cycle
+	* Randomly select either columns or rows as the cycle type
+	* Select the actual buttons to move.  May be multiple sections in later stages
+	* Check if the selected sections contain the safe button.  If not, repeat n times to increase the odds the safe button will be moved
+	* For each button to move...
+	* If the button is moving off board, spawn a proxy button in its place and move that off.  Then teleport the actual button to the far side of the board, ready to scroll in
+	* Call movement timelines on all buttons in moving sections
+	* Cycle the positions of buttons within the 2D ButtonsGrid array
+	* Find the gates associated with the moving sections and play their animations
 	*/
 
-	// Randomly choose to cycle columns or rows
-	EGridSectionType CycleType = FMath::RandBool() == true ? EGridSectionType::GST_Column : EGridSectionType::GST_Row;
+	/*
+	* Select sections (columns or rows) to cycle
+	*/	
+	EGridSectionType CycleType = FMath::RandBool() == true ? EGridSectionType::GST_Column : EGridSectionType::GST_Row;	// Randomly choose to cycle columns or rows
 
-	int32 safeBtnX;
-	int32 safeBtnY;
+	int32 safeBtnX, safeBtnY;
 	GetButtonIndex(SafeButton, safeBtnX, safeBtnY);
 	int32 SafeButtonSectionIdx = CycleType == EGridSectionType::GST_Column ? safeBtnX : safeBtnY;
 
-	TArray<int32> SelectedSections;
-
 	//Get grid section indices to move this cycle, biased towards adding a section with the safe button in it
+	TArray<int32> SelectedSections;
 	for (int32 i = 0; i < GameboardData.SectionsMovePerCycle; i++)
 	{
 		int32 rangeMax = CycleType == EGridSectionType::GST_Column ? GameboardData.Cols - 1 : GameboardData.Rows - 1;
 		int32 NewSectionIndex = FMath::RandRange(0, rangeMax);
 
-		//We are cycling multiple columns or rows.If our random NewSectionIndex has already been selected, loop around and get a new random index
-		if(SelectedSections.Contains(NewSectionIndex))
+		if(SelectedSections.Contains(NewSectionIndex))	// Ensure we don't add the same section multiple times in one cycle
 		{
 			while (SelectedSections.Contains(NewSectionIndex))
-			{
 				NewSectionIndex = FMath::RandRange(0, rangeMax);
-			}
-		}
-		
+		}	
 		SelectedSections.Add(NewSectionIndex);
 	}
 
-	// If selected sections do not contain a section with the safe button in it...
+	// Add a chance to forcibly set the first selected section to be the safe buttons section
 	if (!SelectedSections.Contains(SafeButtonSectionIdx))
-	{
-		// Add a chance to forcibly set the first selected section to be the safe buttons section
+	{	
 		int32 rangeMax = CycleType == EGridSectionType::GST_Column ? GameboardData.Cols - 1 : GameboardData.Rows - 1;
 		if (rangeMax < SafeButtonCycleBias)
 		{
@@ -390,24 +365,115 @@ void ATTBGameBoard::CycleButtons()
 	}
 
 	/*
-	Cycle the selected sections
+	* Cycle the selected sections
 	*/
 	for (int32 SectionIdx : SelectedSections)
 	{
-		// Randomly choose cycle direction
+		// Get  random cycle direction
 		EDirection CycleDirection = FMath::RandBool() == true ? EDirection::MD_Forward : EDirection::MD_Forward;
-
+		// Get the buttons in the section
 		TArray<ATTBButton*> CycleButtons = CycleType == EGridSectionType::GST_Column ? GetColumn(SectionIdx) : GetRow(SectionIdx);
-		for (int32 j = 0; j < CycleButtons.Num(); j++)
+
+		int32 Idx = 0;
+		for (ATTBButton* b : CycleButtons)
 		{
-			bool bIsLeavingBoard = IsButtonTravelingOffBoard(CycleButtons, j, CycleDirection);
-			PrepCycle(CycleButtons[j], CycleType, CycleDirection, bIsLeavingBoard);
+			/*
+			* Find out if the button is the button traveling off the board and should wrap to the other side
+			* If the button is the last in the array and is traveling forward...
+			* If the button is first in the array and is traveling backward...
+			*/
+			bool bIsLeavingBoard = (CycleDirection == EDirection::MD_Forward && Idx == CycleButtons.Num() - 1)
+				|| (CycleDirection == EDirection::MD_Backward && Idx == 0);
+			
+			/*
+			* If the button is leaving the grid, we create a proxy in it's place to move off the grid.
+			* The actual button is moved into position to scroll onto the board.
+			*/
+			if (bIsLeavingBoard)
+			{
+				/*
+				* Spawn the proxy button.  This button scrolls off the grid instead of the actual button
+				*/
+				ATTBButton* Proxy = GetWorld()->SpawnActor<ATTBButton>(ButtonClass, b->GetActorTransform());
+				Proxy->Gameboard = this;
+				Proxy->bIsPlaceholder = true;
+				Proxy->SetTubeExtension(ETubeAction::TS_Retract);
+
+				FVector ProxyTargetLoc = GetNewButtonLoc(Proxy, CycleType, CycleDirection);
+				ProxyTargetLoc.Z = 0.f;
+
+				// Get target rotation based on movement direction
+				FRotator TargetRot; // The rotation for a piece thats about to scroll onto the grid.
+				if (CycleType == EGridSectionType::GST_Column)
+					TargetRot = (CycleDirection == EDirection::MD_Forward) ? FRotator(-90.f, 0.f, 0.f) : FRotator(90.f, 0.f, 0.f);
+				else
+					TargetRot = (CycleDirection == EDirection::MD_Forward) ? FRotator(0.f, 0.f, 90.f) : FRotator(0.f, 0.f, -90.f);
+
+				// Animate the proxy off the board
+				Proxy->MoveButton(FTransform(TargetRot.Quaternion(), ProxyTargetLoc));
+
+				/*
+				* The button that is going off grid is moved immediately to the opposite side of the board and is moved onto the grid
+				*/
+				float Span = (CycleType == EGridSectionType::GST_Column) ? GetBoardLength() : GetBoardWidth();
+				Span += ButtonSpacing;
+				Span *= (CycleDirection == EDirection::MD_Forward) ? -1.f : 1.f;
+				FVector SpanVect = (CycleType == EGridSectionType::GST_Column) ? FVector(Span, 0.f, 0.f) : FVector(0.f, Span, 0.f);
+				FVector NewLoc = b->GetActorLocation() + SpanVect;
+				NewLoc.Z = 0.f;	// Move the button below the gate
+
+				// Move button to position on the opposite side of the grid in preparation to scroll onto the grid
+				b->SetActorLocationAndRotation(NewLoc, (TargetRot * -1.f).Quaternion());
+				b->RetractImmediate();	// Start in retracted state
+				b->SetTubeExtension(ETubeAction::TS_Extend);	// Extend as it scrolls onto the grid
+			}
+
+			// Perform movement
+			b->MoveButton(FTransform(FRotator::ZeroRotator, GetNewButtonLoc(b, CycleType, CycleDirection)));
+
+			Idx++;	// Iterate loop index
 		}
 
-		CycleGridSection(SectionIdx, CycleDirection, CycleType);
-		OnButtonGridUpdated.Broadcast();
+		// Create a temporary array of the selected col/row
+		TArray<ATTBButton*> NewSection = CycleType == EGridSectionType::GST_Column ? GetColumn(SectionIdx) : GetRow(SectionIdx);
 
-		/* Gates are stored in a regular list so we do a little math to relate columns and rows to a linear list. */
+		/*
+		* Cycle positions of buttons in the 2D grid array
+		*/
+		if (CycleDirection == EDirection::MD_Forward)
+		{
+			// Move the last item to the first position in the array
+			ATTBButton* Item = NewSection[NewSection.Num() - 1];
+			NewSection.RemoveAt(NewSection.Num() - 1);
+			NewSection.Insert(Item, 0);
+		}
+		else
+		{
+			// Move the first item to the end of the array
+			ATTBButton* Item = NewSection[0];
+			NewSection.RemoveAt(0);
+			NewSection.Add(Item);
+		}
+
+		// Assign the temp array back to the grid
+		if (CycleType == EGridSectionType::GST_Column)
+		{
+			ButtonsGrid[SectionIdx].Rows = NewSection;
+		}
+		else
+		{
+			for (int32 i = 0; i < NewSection.Num(); i++)
+			{
+				TArray<ATTBButton*> ExistingRow = ButtonsGrid[i].Rows;
+				ExistingRow[SectionIdx] = NewSection[i];
+				ButtonsGrid[i].Rows = ExistingRow;
+			}
+		}
+
+		/* 
+			Play gate animations
+			Gates are stored in a regular list so we do a little math to relate columns and rows to a linear list. 
+		*/
 		int32 Gate1Idx = (CycleType == EGridSectionType::GST_Column)
 			? SectionIdx + GameboardData.Rows
 			: SectionIdx;
@@ -419,43 +485,13 @@ void ATTBGameBoard::CycleButtons()
 		Gates[Gate1Idx]->PlayGateAnim();
 		Gates[Gate2Idx]->PlayGateAnim();
 	}
-}
 
-void ATTBGameBoard::CycleGridSection(int32 Idx, EDirection Dir, EGridSectionType SectionType)
-{
-	// Create a temporary array of the selected col/row
-	TArray<ATTBButton*> NewSection = SectionType == EGridSectionType::GST_Column ? GetColumn(Idx) : GetRow(Idx);
-
-	// Cycle array positions
-	if (Dir == EDirection::MD_Forward)
+	if (CycleIteration >= GameboardData.CycleCount)
 	{
-		// Move the last item to the first position in the array
-		ATTBButton* Item = NewSection[NewSection.Num() - 1];
-		NewSection.RemoveAt(NewSection.Num() - 1);
-		NewSection.Insert(Item, 0);
+		GetWorldTimerManager().ClearTimer(CycleTimerHandle);
+		OnCycleComplete();
 	}
-	else
-	{
-		// Move the first item to the end of the array
-		ATTBButton* Item = NewSection[0];
-		NewSection.RemoveAt(0);
-		NewSection.Add(Item);
-	}
-
-	// Assign the temp array back to the grid
-	if (SectionType == EGridSectionType::GST_Column)
-	{
-		ButtonsGrid[Idx].Rows = NewSection;
-	}
-	else
-	{
-		for (int32 i = 0; i< NewSection.Num(); i++)
-		{
-			TArray<ATTBButton*> ExistingRow = ButtonsGrid[i].Rows;
-			ExistingRow[Idx] = NewSection[i];
-			ButtonsGrid[i].Rows = ExistingRow;
-		}
-	}
+	CycleIteration++;
 }
 
 void ATTBGameBoard::OnSafeButtonSet()
@@ -468,89 +504,33 @@ void ATTBGameBoard::OnSafeButtonSet()
 		MachineNoiseAudioComp = PlaySound(MachineNoiseSound);
 		MachineNoiseAudioComp->FadeIn(1.f);
 	}
-	
-	GetHud()->BeginCountdown(CountdownSeconds);
+
+	ATTBHud* Hud = Cast<ATTBHud>(GetWorld()->GetFirstPlayerController()->GetHUD());
+	if(Hud)
+		Hud->BeginCountdown(CountdownSeconds);
+
 	GetWorldTimerManager().SetTimer(BeginCycleTimerHandle, this, &ATTBGameBoard::BeginCycle, CountdownSeconds);
 }
 
 void ATTBGameBoard::BeginCycle()
 {
 	BoardState = EBoardState::BS_Cycle;
-	CycleOnTimer();
+	CycleIteration = 0;
 	SafeButton->ChangeColor(EColorFunction::CC_SlowFadeOut);
-}
-
-void ATTBGameBoard::CycleOnTimer()
-{
-	CycleCurrentIteration = 0;
-	GetWorldTimerManager().SetTimer(CycleTimerHandle, this, &ATTBGameBoard::Cycle, 1 / GetGameboardTimeScale(), true);
-}
-
-void ATTBGameBoard::Cycle()
-{
-	CycleButtons();
-	if (CycleCurrentIteration >= GameboardData.CycleCount)
-	{
-		GetWorldTimerManager().ClearTimer(CycleTimerHandle);
-		OnCycleComplete();
-	}
-	CycleCurrentIteration++;
+	GetWorldTimerManager().SetTimer(CycleTimerHandle, this, &ATTBGameBoard::SimulateCycle, 1 / GetGameboardTimeScale(), true);
 }
 
 void ATTBGameBoard::OnCycleComplete()
 {
 	BoardState = EBoardState::BS_PostCycle;
-	GetHud()->OnCycleComplete();
+
+	ATTBHud* Hud = Cast<ATTBHud>(GetWorld()->GetFirstPlayerController()->GetHUD());
+	if(Hud)
+		Hud->OnCycleComplete();
+
 	MachineNoiseAudioComp->FadeOut(1.f, 0.f);	// Stop machine noises
 
 	SetButtonsActive(true);
-}
-
-void ATTBGameBoard::PrepCycle(ATTBButton* Button, EGridSectionType SectionType, EDirection Dir, bool bIsLeavingGrid)
-{
-	/*
-	* If the button is leaving the grid, we create a proxy in it's place to move off the grid.
-	* The actual button is moved into position to scroll onto the board.
-	*/
-	if (bIsLeavingGrid)
-	{
-		/*
-		* Spawn the proxy button.  This button scrolls off the grid instead of the actual grid buttons
-		*/
-		ATTBButton* Proxy = GetWorld()->SpawnActor<ATTBButton>(ButtonClass, Button->GetActorTransform());
-		Proxy->Gameboard = this;
-		Proxy->bIsPlaceholder = true;
-		Proxy->SetTubeExtension(ETubeAction::TS_Retract);
-
-		FVector ProxyTargetLoc = GetNewButtonLoc(Proxy, SectionType, Dir);
-		ProxyTargetLoc.Z = 0.f;
-
-		// Get target rotation based on movement direction
-		FRotator TargetRot; // The rotation for a piece thats about to scroll onto the grid.
-		if (SectionType == EGridSectionType::GST_Column)
-			TargetRot = (Dir == EDirection::MD_Forward) ? FRotator(-90.f, 0.f, 0.f) : FRotator(90.f, 0.f, 0.f);
-		else
-			TargetRot = (Dir == EDirection::MD_Forward) ? FRotator(0.f, 0.f, 90.f) : FRotator(0.f, 0.f, -90.f);
-
-		// Move the proxy off the board
-		Proxy->MoveButton(FTransform(TargetRot.Quaternion(), ProxyTargetLoc));
-
-		/*
-		* The button that is going off grid is moved immediately to the opposite side of the board and is moved onto the grid
-		*/
-		float Span = (SectionType == EGridSectionType::GST_Column) ? GetBoardLength() : GetBoardWidth();
-		Span += ButtonSpacing;
-		Span *= (Dir == EDirection::MD_Forward) ? -1.f : 1.f;
-		FVector SpanVect = (SectionType == EGridSectionType::GST_Column) ? FVector(Span, 0.f, 0.f) : FVector(0.f, Span, 0.f);
-
-		// Move button to position on the opposite side of the grid in preparation to scroll onto the grid
-		Button->SetActorLocationAndRotation(Button->GetActorLocation() + SpanVect, (TargetRot * -1.f).Quaternion());
-		Button->RetractImmediate();	// Start in retracted state
-		Button->SetTubeExtension(ETubeAction::TS_Extend);	// Extend as it scrolls onto the grid
-	}
-
-	// Perform movement
-	Button->MoveButton(FTransform(FRotator::ZeroRotator, GetNewButtonLoc(Button, SectionType, Dir)));
 }
 
 FVector ATTBGameBoard::GetNewButtonLoc(ATTBButton * Button, EGridSectionType SectionType, EDirection Dir)
@@ -583,15 +563,15 @@ void ATTBGameBoard::ButtonClicked(ATTBButton * ClickedButton)
 	if (ClickedButton == SafeButton)
 	{
 		SafeButton->ChangeColor(EColorFunction::CC_FadeIn);
-		GetWorldTimerManager().SetTimer(DelayTimerHandle1, this, &ATTBGameBoard::OnLevelSuccess, .5f);
+		GetWorldTimerManager().SetTimer(DelayTimerHandle1, this, &ATTBGameBoard::CompleteStage, .5f);
 	}
 	else
 	{
-		OnLevelFailure();
+		FailStage();
 	}
 }
 
-void ATTBGameBoard::OnLevelSuccess()
+void ATTBGameBoard::CompleteStage()
 {
 	for (ATTBButton* b : GetAllButtons())
 	{
@@ -600,12 +580,12 @@ void ATTBGameBoard::OnLevelSuccess()
 	}
 	PlaySound(MachineWindDownSound);
 
-	ATTBGameMode* GM = Cast<ATTBGameMode>(GetWorld()->GetAuthGameMode());
-	if(GM)
-		GM->OnStageSucess();
+	ATTBGameState* GS = Cast<ATTBGameState>(GetWorld()->GetGameState());
+	if (GS)
+		GS->OnStageSucess();
 }
 
-void ATTBGameBoard::OnLevelFailure()
+void ATTBGameBoard::FailStage()
 {
 	SafeButton->ChangeColor(EColorFunction::CC_FadeIn);
 	for (ATTBButton* b : GetAllButtons())
@@ -617,7 +597,7 @@ void ATTBGameBoard::OnLevelFailure()
 	DeactivateBoard();
 	GetWorldTimerManager().SetTimer(DelayTimerHandle1, this, &ATTBGameBoard::Explode, 1.f);
 
-	ATTBGameMode* GM = Cast<ATTBGameMode>(GetWorld()->GetAuthGameMode());
-	if (GM)
-		GetWorldTimerManager().SetTimer(DelayTimerHandle2, GM, &ATTBGameMode::OnStageFailed, 2.f);
+	ATTBGameState* GS = Cast<ATTBGameState>(GetWorld()->GetGameState());
+	if (GS)
+		GetWorldTimerManager().SetTimer(DelayTimerHandle2, GS, &ATTBGameState::OnStageFailed, 2.f);
 }
