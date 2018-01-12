@@ -33,11 +33,6 @@ ATTBButton::ATTBButton()
 
 	/* Setup click event for button */
 	ButtonMesh->OnClicked.AddUniqueDynamic(this, &ATTBButton::OnButtonClicked);
-
-	// Create timelines
-	MovementTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("MovementTimeline"));
-	TubeTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("TubeTimeline"));
-	ColorTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("ColorTimeline"));
 }
 
 void ATTBButton::BeginPlay()
@@ -56,16 +51,10 @@ void ATTBButton::RetractImmediate()
 void ATTBButton::SetTubeExtension(ETubeAction NewTubeAction)
 {
 	ButtonTargetHeight = (NewTubeAction == ETubeAction::TS_Extend) ? 0.f : RetractedButtonZ;	// Set target height based on if this is a retraction or extension
-
-	FOnTimelineFloat tickCallback{};	// Called on each tick of the timeline
-	tickCallback.BindUFunction(this, FName{ TEXT("SetTubeExtensionTLCallback") });
-	TubeTimeline->AddInterpFloat(LinearCurve, tickCallback, FName{ TEXT("TubeAnimation") });
-	TubeTimeline->SetPlayRate(Gameboard->GetGameboardTimeScale());
-
-	TubeTimeline->PlayFromStart();
+	DoTubeExtension(NewTubeAction, Gameboard->GetGameboardTimeScale());
 }
 
-void ATTBButton::SetTubeExtensionTLCallback(float Val)
+void ATTBButton::TubeExtensionCallback(float Val)
 {
 	float NewZ = FMath::Lerp(TubeMesh->RelativeLocation.Z, ButtonTargetHeight, Val);
 	TubeMesh->SetRelativeLocation(FVector(0.f, 0.f, NewZ));
@@ -73,28 +62,14 @@ void ATTBButton::SetTubeExtensionTLCallback(float Val)
 
 void ATTBButton::MoveButton(FTransform TargetTransform)
 {
-	if (!LinearCurve)
-		return;
-
 	PlaySound(CycleClickSound);
-	MoveTargetXForm = TargetTransform;
-
-	FOnTimelineEventStatic finishedCallback{};	// Called when the timeline completes
-	finishedCallback.BindUFunction(this, FName{TEXT("MoveButtonFinishedCallback")});
-	MovementTimeline->SetTimelineFinishedFunc(finishedCallback);
-
-	FOnTimelineFloat tickCallback{};	// Called on each tick of the timeline
-	tickCallback.BindUFunction(this, FName{ TEXT("MoveButtonTickCallback") });
-
-	MovementTimeline->AddInterpFloat(LinearCurve, tickCallback, FName{ TEXT("MovementAnimation") });
-	MovementTimeline->SetPlayRate(Gameboard->GetGameboardTimeScale());
-	MovementTimeline->PlayFromStart();
+	DoMoveButton(TargetTransform, Gameboard->GetGameboardTimeScale());
 }
 
-void ATTBButton::MoveButtonTickCallback(float Val)
+void ATTBButton::MoveButtonTickCallback(float Val, FTransform TargetTransform)
 {
-	FVector NewLoc = FMath::Lerp(GetActorLocation(), MoveTargetXForm.GetLocation(), Val);
-	FRotator NewRot = FMath::Lerp(GetActorRotation(), MoveTargetXForm.GetRotation().Rotator(), Val);
+	FVector NewLoc = FMath::Lerp(GetActorLocation(), TargetTransform.GetLocation(), Val);
+	FRotator NewRot = FMath::Lerp(GetActorRotation(), TargetTransform.GetRotation().Rotator(), Val);
 	SetActorLocationAndRotation(NewLoc, NewRot);
 }
 
@@ -106,30 +81,9 @@ void ATTBButton::MoveButtonFinishedCallback()
 
 void ATTBButton::ChangeColor(EColorFunction InColorFunction)
 {
-	if (!BlinkCurve || !BlinkAndHoldCurve || !LinearReverseCurve || !LinearCurve)
-		return;
-
-	UCurveFloat* Curve = BlinkCurve;
-
-	Curve =
-		(InColorFunction == EColorFunction::CC_Blink) ? BlinkCurve
-		: (InColorFunction == EColorFunction::CC_BlinkAndHold) ? BlinkAndHoldCurve
-		: (InColorFunction == EColorFunction::CC_SlowFadeOut) ? SlowFadeOutCurve
-		: (InColorFunction == EColorFunction::CC_FadeOut) ? LinearReverseCurve
-		: LinearCurve;
-
-	float PlayRate = (InColorFunction == EColorFunction::CC_SlowFadeOut) 
-		? 1.f / 3.f 
-		: 1.f / 0.3f;
-	
-	FOnTimelineFloat tickCallback{};	// Called on each tick of the timeline
-	tickCallback.BindUFunction(this, FName{ TEXT("ChangeColorTLCallback") });	
-	ColorTimeline->AddInterpFloat(Curve, tickCallback, FName{ TEXT("ColorAnimation") });
-	ColorTimeline->SetPlayRate(PlayRate);
-
-	ColorTimeline->PlayFromStart();
-
 	PlaySound(ClickSound);
+	DoChangeColor(InColorFunction);
+	return;
 }
 
 void ATTBButton::ChangeColorTLCallback(float Val)
@@ -145,15 +99,7 @@ void ATTBButton::PressButton()
 	// Immediately deactivate all buttons so player cant click multiple buttons	
 	Gameboard->SetButtonsActive(false);
 
-	FOnTimelineEventStatic finishedCallback{};	// Called when the timeline completes
-	finishedCallback.BindUFunction(this, FName{ TEXT("PressButtonFinishedCallback") });
-	MovementTimeline->SetTimelineFinishedFunc(finishedCallback);
-
-	FOnTimelineFloat tickCallback{};	// Called on each tick of the timeline
-	tickCallback.BindUFunction(this, FName{ TEXT("PressButtonTickCallback") });
-
-	MovementTimeline->AddInterpFloat(ButtonPressCurve, tickCallback, FName{ TEXT("MovementAnimation") });
-	MovementTimeline->PlayFromStart();
+	DoPressButton();
 }
 
 void ATTBButton::PressButtonTickCallback(float Val)

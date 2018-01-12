@@ -22,32 +22,15 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 	class UStaticMeshComponent* ButtonMesh;
 
-	class UTimelineComponent* MovementTimeline;
-	class UTimelineComponent* TubeTimeline;
-	class UTimelineComponent* ColorTimeline;
-	class UTimelineComponent* PressButtonTimeline;
-
-	/* Timeline Curves */
-	UPROPERTY(EditDefaultsOnly)
-	class UCurveFloat* LinearCurve;
-	UPROPERTY(EditDefaultsOnly)
-	class UCurveFloat* BlinkCurve;
-	UPROPERTY(EditDefaultsOnly)
-	class UCurveFloat* BlinkAndHoldCurve;
-	UPROPERTY(EditDefaultsOnly)
-	class UCurveFloat* LinearReverseCurve;
-	UPROPERTY(EditDefaultsOnly)
-	class UCurveFloat* SlowFadeOutCurve;
-	UPROPERTY(EditDefaultsOnly)
-	class UCurveFloat* ButtonPressCurve;
-
 	UPROPERTY(EditDefaultsOnly)
 	class USoundBase* ClickSound;
 	UPROPERTY(EditDefaultsOnly)
 	class USoundBase* CycleClickSound;
 
 public:
+	UPROPERTY(BlueprintReadOnly)
 	class ATTBGameBoard* Gameboard;
+	UPROPERTY(BlueprintReadOnly)
 	bool bIsPlaceholder;
 
 protected:
@@ -70,29 +53,36 @@ public:
 	/* Extend the tube up and down */
 	UFUNCTION(BlueprintCallable)
 	void SetTubeExtension(ETubeAction NewTubeAction);
-	UFUNCTION()
-	void SetTubeExtensionTLCallback(float Val);
+	UFUNCTION(BlueprintImplementableEvent)
+	void DoTubeExtension(ETubeAction NewTubeAction, float Rate);
+	UFUNCTION(BlueprintCallable)
+	void TubeExtensionCallback(float Val);
 
 	/* Move button to new position on grid */
-	UFUNCTION(BlueprintCallable)
 	void MoveButton(FTransform TargetTransform);
-	UFUNCTION()
-	void MoveButtonTickCallback(float Val);
-	UFUNCTION()
+	UFUNCTION(BlueprintImplementableEvent)
+	void DoMoveButton(FTransform TargetTransform, float Rate);
+	UFUNCTION(BlueprintCallable)
+	void MoveButtonTickCallback(float Val, FTransform TargetTransform);
+	UFUNCTION(BlueprintCallable)
 	void MoveButtonFinishedCallback();
 
 	/* Animate the color of the button */
 	UFUNCTION(BlueprintCallable)
 	void ChangeColor(EColorFunction InColorFunction);
-	UFUNCTION()
+	UFUNCTION(BlueprintImplementableEvent)
+	void DoChangeColor(EColorFunction InColorFunction);
+	UFUNCTION(BlueprintCallable)
 	void ChangeColorTLCallback(float Val);
 
 	/* Animated button up and down */
 	UFUNCTION(BlueprintCallable)
 	void PressButton();
-	UFUNCTION()
+	UFUNCTION(BlueprintImplementableEvent)
+	void DoPressButton();
+	UFUNCTION(BlueprintCallable)
 	void PressButtonTickCallback(float Val);
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	void PressButtonFinishedCallback();
 
 	UFUNCTION()
