@@ -28,22 +28,22 @@ protected:
 	class UTimelineComponent* PressButtonTimeline;
 
 	/* Timeline Curves */
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY()
 	class UCurveFloat* LinearCurve;
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY()
 	class UCurveFloat* BlinkCurve;
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY()
 	class UCurveFloat* BlinkAndHoldCurve;
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY()
 	class UCurveFloat* LinearReverseCurve;
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY()
 	class UCurveFloat* SlowFadeOutCurve;
-	UPROPERTY(EditDefaultsOnly)
-	class UCurveFloat* ButtonPressCurve;
+	UPROPERTY()
+	class UCurveFloat* ValleyCurve;
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class USoundBase* ClickSound;
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class USoundBase* CycleClickSound;
 
 public:
@@ -52,13 +52,12 @@ public:
 
 protected:
 	UPROPERTY(EditDefaultsOnly)
+	float BlinkTime;
+	UPROPERTY(EditDefaultsOnly)
 	float RetractedButtonZ;
 
 	UMaterialInstanceDynamic* ButtonMaterialInstance;
-
-	/* Target height for tube during extension timeline */
-	float TubeTargetHeight;
-	/* Target location for button actor during movement timeline */
+	float ButtonTargetHeight;
 	FTransform MoveTargetXForm;
 
 public:
