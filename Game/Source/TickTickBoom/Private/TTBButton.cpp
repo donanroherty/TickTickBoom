@@ -36,8 +36,8 @@ ATTBButton::ATTBButton()
 	Button = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Button"));
 	Button->AttachToComponent(Tube, FAttachmentTransformRules::KeepRelativeTransform);
 
-	// TODO: This should probably use references in editor rather than ObjectFinder
-	// Load curves
+	//Button->OnClicked.AddUniqueDynamic(this, &ATTBButton::OnButtonClicked);
+
 	static ConstructorHelpers::FObjectFinder<UCurveFloat> LinearCurve_Asset(TEXT("CurveFloat'/Game/Curves/Linear_Curve.Linear_Curve'"));
 	check(LinearCurve_Asset.Succeeded());
 	LinearCurve = LinearCurve_Asset.Object;
@@ -58,6 +58,10 @@ ATTBButton::ATTBButton()
 	check(SlowFadeOutCurve_Asset.Succeeded());
 	SlowFadeOutCurve = SlowFadeOutCurve_Asset.Object;
 
+	static ConstructorHelpers::FObjectFinder<UCurveFloat> ValleyCurve_Asset(TEXT("CurveFloat'/Game/Curves/Valley_Curve.Valley_Curve'"));
+	check(ValleyCurve_Asset.Succeeded());
+	ValleyCurve = ValleyCurve_Asset.Object;
+
 	// Load sound assets.
 	static ConstructorHelpers::FObjectFinder<USoundCue> ClickSound_Asset(TEXT("SoundCue'/Game/Sounds/SC_Click.SC_Click'"));
 	check(ClickSound_Asset.Succeeded())
@@ -72,20 +76,6 @@ ATTBButton::ATTBButton()
 	TubeTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("TubeTimeline"));
 	ColorTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("ColorTimeline"));
 }
-
-
-// Called when the game starts or when spawned
-void ATTBButton::BeginPlay()
-{
-	Super::BeginPlay();
-
-	if (Gameboard)
-		Gameboard->OnButtonGridUpdated.AddDynamic(this, &ATTBButton::UpdateDebug);
-
-	// Run debug update manually the first time
-	UpdateDebug();
-}
-
 
 void ATTBButton::SetActive(bool bNewActive)
 {
@@ -155,7 +145,7 @@ void ATTBButton::MovementTLFinishedCallback()
 		Destroy();
 }
 
-void ATTBButton::HandleColorTimeline(EColorFunction InColorFunction)
+void ATTBButton::HandleColorTL(EColorFunction InColorFunction)
 {
 	UCurveFloat* Curve = BlinkCurve;
 
@@ -171,7 +161,7 @@ void ATTBButton::HandleColorTimeline(EColorFunction InColorFunction)
 		: 1.f / 0.3f;
 	
 	FOnTimelineFloat tickCallback{};	// Called on each tick of the timeline
-	tickCallback.BindUFunction(this, FName{ TEXT("SetColorTimelineCallback") });	
+	tickCallback.BindUFunction(this, FName{ TEXT("SetColorTLCallback") });	
 	ColorTimeline->AddInterpFloat(Curve, tickCallback, FName{ TEXT("ColorAnimation") });
 	ColorTimeline->SetPlayRate(PlayRate);
 
@@ -180,10 +170,43 @@ void ATTBButton::HandleColorTimeline(EColorFunction InColorFunction)
 	PlaySound(ClickSound);
 }
 
-void ATTBButton::SetColorTimelineCallback(float Val)
+void ATTBButton::SetColorTLCallback(float Val)
 {
 	ButtonMaterialInstance->SetScalarParameterValue(TEXT("ColorBlend"), Val);
 }
+
+void ATTBButton::HandlePressButtonTL()
+{
+	// Immediately deactivate all buttons so player cant click multiple buttons
+	if (bIsActive)
+		Gameboard->DeactivateButtons();
+
+	FOnTimelineEventStatic finishedCallback{};	// Called when the timeline completes
+	finishedCallback.BindUFunction(this, FName{ TEXT("OnPressButtonFinishedCallback") });
+	MovementTimeline->SetTimelineFinishedFunc(finishedCallback);
+
+	FOnTimelineFloat tickCallback{};	// Called on each tick of the timeline
+	tickCallback.BindUFunction(this, FName{ TEXT("OnPressButtonTickCallback") });
+
+	MovementTimeline->AddInterpFloat(ValleyCurve, tickCallback, FName{ TEXT("MovementAnimation") });
+	MovementTimeline->PlayFromStart();
+}
+
+void ATTBButton::OnPressButtonTickCallback(float Val)
+{
+	float NewZ = FMath::Lerp(Button->RelativeLocation.Z, Val, 1);
+	Button->SetRelativeLocation(FVector(0.f, 0.f, NewZ));
+}
+
+void ATTBButton::OnPressButtonFinishedCallback()
+{
+	Gameboard->ButtonClicked(this);
+}
+
+// void ATTBButton::OnButtonClicked(UPrimitiveComponent* pComponent, FKey ButtonPressed)
+// {
+// 	HandlePressButton();
+// }
 
 UAudioComponent* ATTBButton::PlaySound(USoundBase* Sound)
 {

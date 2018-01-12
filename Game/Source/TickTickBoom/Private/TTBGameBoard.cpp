@@ -478,7 +478,7 @@ void ATTBGameBoard::GetGateIndicesForSection(int32 SectionIdx, EGridSectionType 
 
 void ATTBGameBoard::OnSafeButtonSet()
 {
-	SafeButton->HandleColorTimeline(EColorFunction::CC_BlinkAndHold);
+	SafeButton->HandleColorTL(EColorFunction::CC_BlinkAndHold);
 
 	// Start machine noises
 	if (MachineNoiseSound)
@@ -495,7 +495,7 @@ void ATTBGameBoard::BeginCycle()
 {
 	BoardState = EBoardState::BS_Cycle;
 	CycleOnTimer();
-	SafeButton->HandleColorTimeline(EColorFunction::CC_SlowFadeOut);
+	SafeButton->HandleColorTL(EColorFunction::CC_SlowFadeOut);
 }
 
 void ATTBGameBoard::OnCycleComplete()
@@ -583,7 +583,7 @@ void ATTBGameBoard::ButtonClicked(ATTBButton * ClickedButton)
 
 	if (ClickedButton == SafeButton)
 	{
-		SafeButton->HandleColorTimeline(EColorFunction::CC_FadeIn);
+		SafeButton->HandleColorTL(EColorFunction::CC_FadeIn);
 		GetWorldTimerManager().SetTimer(DelayTimerHandle1, this, &ATTBGameBoard::OnLevelSuccess, .5f);
 	}
 	else
@@ -597,7 +597,7 @@ void ATTBGameBoard::OnLevelSuccess()
 	for (ATTBButton* b : GetAllButtons())
 	{
 		b->RetractButton();
-		b->HandleColorTimeline(EColorFunction::CC_FadeIn);
+		b->HandleColorTL(EColorFunction::CC_FadeIn);
 	}
 	PlaySound(MachineWindDownSound);
 
@@ -608,7 +608,7 @@ void ATTBGameBoard::OnLevelSuccess()
 
 void ATTBGameBoard::OnLevelFailure()
 {
-	SafeButton->HandleColorTimeline(EColorFunction::CC_FadeIn);
+	SafeButton->HandleColorTL(EColorFunction::CC_FadeIn);
 	for (ATTBButton* b : GetAllButtons())
 	{
 		if (b != SafeButton)

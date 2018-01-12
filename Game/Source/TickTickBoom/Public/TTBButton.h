@@ -28,6 +28,8 @@ public:
 		class UTimelineComponent* TubeTimeline;
 	UPROPERTY(VisibleAnywhere)
 		class UTimelineComponent* ColorTimeline;
+	UPROPERTY(VisibleAnywhere)
+		class UTimelineComponent* PressButtonTimeline;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 		class USoundBase* ClickSound;
@@ -56,9 +58,6 @@ public:
 		bool bIsActive;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
-		bool bDrawDebug;
-
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
 		UMaterialInstanceDynamic* ButtonMaterialInstance;
 
 	/* One second, linear curve.  Scaled and used for various timelines */
@@ -73,10 +72,8 @@ public:
 		class UCurveFloat* LinearReverseCurve;
 	UPROPERTY()
 		class UCurveFloat* SlowFadeOutCurve;
-
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+	UPROPERTY()
+		class UCurveFloat* ValleyCurve;
 
 public:
 	// Sets default values for this actor's properties
@@ -84,9 +81,6 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetActive(bool bNewActive);
-
-	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
-	void UpdateDebug();
 
 	UFUNCTION(BlueprintCallable)
 	void RetractButton();
@@ -111,11 +105,18 @@ public:
 	UFUNCTION(BlueprintCallable)
 	UAudioComponent* PlaySound(class USoundBase * Sound);
 
-	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
-	void OnButtonClicked();
+	UFUNCTION(BlueprintCallable)
+	void HandleColorTL(EColorFunction InColorFunction);
+	UFUNCTION()
+	void SetColorTLCallback(float Val);
 
 	UFUNCTION(BlueprintCallable)
-	void HandleColorTimeline(EColorFunction InColorFunction);
+	void HandlePressButtonTL();
 	UFUNCTION()
-	void SetColorTimelineCallback(float Val);
+	void OnPressButtonTickCallback(float Val);
+	UFUNCTION()
+		void OnPressButtonFinishedCallback();
+
+	//UFUNCTION()
+	//void OnButtonClicked(UPrimitiveComponent* pComponent, FKey ButtonPressed);
 };
