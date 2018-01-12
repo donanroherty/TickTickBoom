@@ -57,7 +57,7 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 		bool bIsActive;
 
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
+	UPROPERTY(BlueprintReadWrite)
 		UMaterialInstanceDynamic* ButtonMaterialInstance;
 
 	/* One second, linear curve.  Scaled and used for various timelines */
@@ -78,6 +78,8 @@ public:
 public:
 	// Sets default values for this actor's properties
 	ATTBButton();
+
+	virtual void BeginPlay() override;
 
 	UFUNCTION(BlueprintCallable)
 	void SetActive(bool bNewActive);

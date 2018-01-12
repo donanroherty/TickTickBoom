@@ -7,8 +7,6 @@
 #include "TTBTypes.h"
 #include "TTBGameBoard.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FButtonGridUpdated);
-
 UCLASS()
 class TICKTICKBOOM_API ATTBGameBoard : public AActor
 {
@@ -65,6 +63,8 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
 	int32 SafeButtonCycleBias;
 
+	int32 CurrentCycleCount;
+
 	UPROPERTY(BlueprintReadWrite)
 	EBoardState BoardState;
 
@@ -74,12 +74,6 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	TArray<FButtonGrid> ButtonsGrid;
 
-	/* Delegates */
-	/* Called when the button grid is updated */
-	UPROPERTY(BlueprintAssignable, BlueprintCallable)
-	FButtonGridUpdated OnButtonGridUpdated;
-
-	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	class USoundBase* MachineNoiseSound;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
@@ -100,6 +94,7 @@ public:
 	FTimerHandle DelayTimerHandle1;
 	FTimerHandle DelayTimerHandle2;
 	FTimerHandle ChooseSafeButtonTimerHandle;
+	FTimerHandle CycleTimerHandle;
 
 public:	
 	// Sets default values for this actor's properties
@@ -121,10 +116,10 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void DeactivateBoard();
 
-	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	UFUNCTION(BlueprintCallable)
 	void BeginPreCycle();
 
-	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	UFUNCTION(BlueprintCallable)
 	void ChooseSafeButton();
 
 	UFUNCTION(BlueprintCallable)
@@ -133,10 +128,10 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void BeginCycle();
 
-	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	UFUNCTION(BlueprintCallable)
 	void CycleOnTimer();
 
-	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	UFUNCTION(BlueprintCallable)
 	void Cycle();
 
 	UFUNCTION(BlueprintCallable)
@@ -212,8 +207,4 @@ public:
 	/* Switch the positions of buttons in the 2D grid array */
 	UFUNCTION(BlueprintCallable, Category = Gameboard)
 		void CycleGridSection(int32 Idx, EDirection Dir, EGridSectionType SectionType);
-
-	/* Returns the indices of the gates associated with a section */
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
-	void GetGateIndicesForSection(int32 SectionIdx, EGridSectionType SectionType, int32 &OutGateIndex1, int32 &OutGateIndex2);
 };

@@ -182,8 +182,6 @@ void ATTBGameBoard::BuildGameboard()
 			NewGate->AttachToComponent(NewWallComp, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TEXT("Attach"));
 		}
 	}
-
-	OnButtonGridUpdated.Broadcast();
 }
 
 void ATTBGameBoard::OnShortCircuit()
@@ -208,34 +206,6 @@ void ATTBGameBoard::DeactivateBoard()
 	DeactivateButtons();
 }
 
-// TODO: Calling BP functions with timeline from a timer function is crashing out.  Come back to this.
-// void ATTBGameBoard::BeginPreCycle()
-// {
-// 	BoardState = EBoardState::BS_PreCycle;
-// 	SafeButtonCurrentIteration = 0;
-// 	GetWorldTimerManager().SetTimer(ChooseSafeButtonTimerHandle, this, &ATTBGameBoard::ChooseSafeButton, .1f, true);
-// }
-// 
-// void ATTBGameBoard::ChooseSafeButton()
-// {
-// 	ATTBButton* NewSafeButton = GetRandButton();
-// 	while (NewSafeButton == SafeButton)		// Prevent randomly selecting the same safe button twice in a row
-// 	{
-// 		SafeButton = GetRandButton();
-// 	}
-// 
-// 	SafeButtonCurrentIteration++;
-// 
-// 	if (SafeButtonCurrentIteration > SafeButtonChoiceIterations)
-// 	{
-// 		GetWorldTimerManager().ClearTimer(ChooseSafeButtonTimerHandle);
-// 		OnSafeButtonSet();
-// 	}
-// 	else
-// 	{
-// 		SafeButton->HandleColorTimeline(EColorFunction::CC_Blink);
-// 	}
-// }
 
 void ATTBGameBoard::Explode()
 {
@@ -355,12 +325,10 @@ bool ATTBGameBoard::IsButtonTravelingOffBoard(TArray<ATTBButton*> ButtonArray, i
 void ATTBGameBoard::CycleButtons()
 {
 	/*
-	Select sections (columns or rows) to cycle
+		Select sections (columns or rows) to cycle
 	*/
-
 	// Randomly choose to cycle columns or rows
 	EGridSectionType CycleType = FMath::RandBool() == true ? EGridSectionType::GST_Column : EGridSectionType::GST_Row;
-
 	int32 safeBtnX;
 	int32 safeBtnY;
 	GetButtonIndex(SafeButton, safeBtnX, safeBtnY);
@@ -368,7 +336,7 @@ void ATTBGameBoard::CycleButtons()
 
 	TArray<int32> SelectedSections;
 
-	//Get grid section indices to move this cycle, biased towards adding a section with the safe button in it
+	//Get sections to move this cycle, biased towards adding a section with the safe button in it
 	for (int32 i = 0; i < GameboardData.SectionsMovePerCycle; i++)
 	{
 		int32 rangeMax = CycleType == EGridSectionType::GST_Column ? GameboardData.Cols - 1 : GameboardData.Rows - 1;
@@ -381,8 +349,7 @@ void ATTBGameBoard::CycleButtons()
 			{
 				NewSectionIndex = FMath::RandRange(0, rangeMax);
 			}
-		}
-		
+		}	
 		SelectedSections.Add(NewSectionIndex);
 	}
 
@@ -412,13 +379,18 @@ void ATTBGameBoard::CycleButtons()
 			PrepCycle(CycleButtons[j], CycleType, CycleDirection, bIsLeavingBoard);
 		}
 
+		/* Update the 2d grid array */
 		CycleGridSection(SectionIdx, CycleDirection, CycleType);
-		OnButtonGridUpdated.Broadcast();
 
-		int32 Gate1Idx;
-		int32 Gate2Idx;
-		GetGateIndicesForSection(SectionIdx, CycleType, Gate1Idx, Gate2Idx);
+		/* Gates are stored in a regular list so we do a little math to relate columns and rows to a linear list. */
+		int32 Gate1Idx = (CycleType == EGridSectionType::GST_Column)
+			? SectionIdx + GameboardData.Rows
+			: SectionIdx;
+		int32 Gate2Idx = (CycleType == EGridSectionType::GST_Column)
+			? ((SectionIdx + (GameboardData.Rows * 2)) + ((GameboardData.Cols - SectionIdx) * 2)) - 1
+			: ((SectionIdx + GameboardData.Cols) + (((GameboardData.Rows - 1) - SectionIdx) * 2)) + 1;
 
+		// Play animations
 		Gates[Gate1Idx]->PlayGateAnim();
 		Gates[Gate2Idx]->PlayGateAnim();
 	}
@@ -462,19 +434,37 @@ void ATTBGameBoard::CycleGridSection(int32 Idx, EDirection Dir, EGridSectionType
 	}
 }
 
-void ATTBGameBoard::GetGateIndicesForSection(int32 SectionIdx, EGridSectionType SectionType, int32 &OutGateIndex1, int32 &OutGateIndex2)
+void ATTBGameBoard::BeginPreCycle()
 {
-	/* Gates are stored in a regular list so we do a little math to relate columns and rows to a linear list. */
-
-	OutGateIndex1 = (SectionType == EGridSectionType::GST_Column)
-		? SectionIdx + GameboardData.Rows 
-		: SectionIdx;
-
-	OutGateIndex2 = (SectionType == EGridSectionType::GST_Column)
-		? ((SectionIdx + (GameboardData.Rows * 2)) + ((GameboardData.Cols - SectionIdx) * 2)) - 1 
-		: ((SectionIdx + GameboardData.Cols) + (((GameboardData.Rows - 1) - SectionIdx) * 2)) + 1;
+	BoardState = EBoardState::BS_PreCycle;
+	SafeButtonCurrentIteration = 0;
+	GetWorldTimerManager().SetTimer(ChooseSafeButtonTimerHandle, this, &ATTBGameBoard::ChooseSafeButton, .1f, true);
 }
 
+void ATTBGameBoard::ChooseSafeButton()
+{
+	ATTBButton* NewSafeButton = GetRandButton();
+	if (NewSafeButton == SafeButton)
+	{
+		while (NewSafeButton == SafeButton)		// Prevent randomly selecting the same safe button twice in a row
+		{
+			NewSafeButton = GetRandButton();
+		}
+	}
+
+	if (SafeButtonCurrentIteration < SafeButtonChoiceIterations)
+	{
+		NewSafeButton->HandleColorTL(EColorFunction::CC_Blink);
+	}
+	else
+	{
+		SafeButton = NewSafeButton;
+		GetWorldTimerManager().ClearTimer(ChooseSafeButtonTimerHandle);
+		OnSafeButtonSet();
+	}
+
+	SafeButtonCurrentIteration++;
+}
 
 void ATTBGameBoard::OnSafeButtonSet()
 {
@@ -486,7 +476,7 @@ void ATTBGameBoard::OnSafeButtonSet()
 		MachineNoiseAudioComp = PlaySound(MachineNoiseSound);
 		MachineNoiseAudioComp->FadeIn(1.f);
 	}
-	
+
 	GetHud()->BeginCountdown(CountdownSeconds);
 	GetWorldTimerManager().SetTimer(BeginCycleTimerHandle, this, &ATTBGameBoard::BeginCycle, CountdownSeconds);
 }
@@ -496,6 +486,26 @@ void ATTBGameBoard::BeginCycle()
 	BoardState = EBoardState::BS_Cycle;
 	CycleOnTimer();
 	SafeButton->HandleColorTL(EColorFunction::CC_SlowFadeOut);
+}
+
+
+void ATTBGameBoard::CycleOnTimer()
+{
+	CurrentCycleCount = 0;
+	GetWorldTimerManager().SetTimer(CycleTimerHandle, this, &ATTBGameBoard::Cycle, 1 / GetGameboardTimeScale(), true);
+}
+
+void ATTBGameBoard::Cycle()
+{
+	CycleButtons();
+
+	if (CurrentCycleCount >= GameboardData.CycleCount)
+	{
+		GetWorldTimerManager().ClearTimer(CycleTimerHandle);
+		OnCycleComplete();
+	}
+
+	CurrentCycleCount++;
 }
 
 void ATTBGameBoard::OnCycleComplete()
