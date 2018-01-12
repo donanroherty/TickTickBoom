@@ -170,6 +170,7 @@ void ATTBGameBoard::BuildGameboard()
 
 
 			// Make gates
+
 			if (GateClass)
 			{
 				FTransform SpawnXForm;
@@ -183,6 +184,18 @@ void ATTBGameBoard::BuildGameboard()
 					Gates.Add(NewGate);
 				}
 			}
+
+// 			UChildActorComponent* NewGateComp = NewObject<UChildActorComponent>(this, FName(*("Gate_" + FString::FromInt(i) + "," + FString::FromInt(j))));
+// 			NewGateComp->SetupAttachment(this->GetRootComponent());
+// 			NewGateComp->RegisterComponent();
+// 
+// 			if (GateClass)
+// 				NewGateComp->SetChildActorClass(GateClass);
+// 
+// 			ATTBGate* NewGate = Cast<ATTBGate>(NewGateComp->GetChildActor());
+// 			Gates.Add(NewGate);
+// 			NewGate->Gameboard = this;
+// 			NewGate->AttachToComponent(NewWallComp, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TEXT("Attach"));
 		}
 	}	
 	OnButtonGridUpdated.Broadcast();
