@@ -7,6 +7,8 @@
 #include "TTBTypes.h"
 #include "TTBGameBoard.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FButtonGridUpdated);
+
 UCLASS()
 class TICKTICKBOOM_API ATTBGameBoard : public AActor
 {
@@ -53,17 +55,17 @@ public:
 
 	UPROPERTY(BlueprintReadWrite)
 	int32 SafeButtonChoiceIterations;
-
 	/* Iterated each loop of ChooseSafeButton() to control max iterations */
+	UPROPERTY(BlueprintReadWrite)
 	int32 SafeButtonCurrentIteration;
+	UPROPERTY(BlueprintReadWrite)
+	int32 CycleCurrentIteration;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
 	int32 CountdownSeconds;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
 	int32 SafeButtonCycleBias;
-
-	int32 CurrentCycleCount;
 
 	UPROPERTY(BlueprintReadWrite)
 	EBoardState BoardState;
@@ -73,6 +75,11 @@ public:
 
 	UPROPERTY(BlueprintReadWrite)
 	TArray<FButtonGrid> ButtonsGrid;
+
+	/* Delegates */
+	/* Called when the button grid is updated */
+	UPROPERTY(BlueprintAssignable, BlueprintCallable)
+	FButtonGridUpdated OnButtonGridUpdated;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	class USoundBase* MachineNoiseSound;
@@ -93,7 +100,9 @@ public:
 	FTimerHandle BeginCycleTimerHandle;
 	FTimerHandle DelayTimerHandle1;
 	FTimerHandle DelayTimerHandle2;
+	UPROPERTY(BlueprintReadWrite)
 	FTimerHandle ChooseSafeButtonTimerHandle;
+	UPROPERTY(BlueprintReadWrite)
 	FTimerHandle CycleTimerHandle;
 
 public:	
@@ -207,4 +216,5 @@ public:
 	/* Switch the positions of buttons in the 2D grid array */
 	UFUNCTION(BlueprintCallable, Category = Gameboard)
 		void CycleGridSection(int32 Idx, EDirection Dir, EGridSectionType SectionType);
+
 };
