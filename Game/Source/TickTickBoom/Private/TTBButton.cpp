@@ -15,7 +15,6 @@
 // Sets default values
 ATTBButton::ATTBButton()
 {
-	BlinkTime = .3f;
 	RetractedButtonZ = - 2.f;
 	ButtonTargetHeight = 0.f;
 	bIsPlaceholder = false;
@@ -34,40 +33,6 @@ ATTBButton::ATTBButton()
 
 	/* Setup click event for button */
 	ButtonMesh->OnClicked.AddUniqueDynamic(this, &ATTBButton::OnButtonClicked);
-
-	/* Load curves */
-	static ConstructorHelpers::FObjectFinder<UCurveFloat> LinearCurve_Asset(TEXT("CurveFloat'/Game/Curves/Linear_Curve.Linear_Curve'"));
-	check(LinearCurve_Asset.Succeeded());
-	LinearCurve = LinearCurve_Asset.Object;
-
-	static ConstructorHelpers::FObjectFinder<UCurveFloat> LinearReverseCurve_Asset(TEXT("CurveFloat'/Game/Curves/LinearReverse_Curve.LinearReverse_Curve'"));
-	check(LinearReverseCurve_Asset.Succeeded());
-	LinearReverseCurve = LinearReverseCurve_Asset.Object;
-
-	static ConstructorHelpers::FObjectFinder<UCurveFloat> BlinkCurve_Asset(TEXT("CurveFloat'/Game/Curves/Blink_Curve.Blink_Curve'"));
-	check(BlinkCurve_Asset.Succeeded());
-	BlinkCurve = BlinkCurve_Asset.Object;
-
-	static ConstructorHelpers::FObjectFinder<UCurveFloat> BlinkAndHoldCurve_Asset(TEXT("CurveFloat'/Game/Curves/BlinkAndHold_Curve.BlinkAndHold_Curve'"));
-	check(BlinkAndHoldCurve_Asset.Succeeded());
-	BlinkAndHoldCurve = BlinkAndHoldCurve_Asset.Object;
-
-	static ConstructorHelpers::FObjectFinder<UCurveFloat> SlowFadeOutCurve_Asset(TEXT("CurveFloat'/Game/Curves/SlowFadeOut_Curve.SlowFadeOut_Curve'"));
-	check(SlowFadeOutCurve_Asset.Succeeded());
-	SlowFadeOutCurve = SlowFadeOutCurve_Asset.Object;
-
-	static ConstructorHelpers::FObjectFinder<UCurveFloat> ValleyCurve_Asset(TEXT("CurveFloat'/Game/Curves/FlipGate_Curve.FlipGate_Curve'"));
-	check(ValleyCurve_Asset.Succeeded());
-	ValleyCurve = ValleyCurve_Asset.Object;
-
-	// Load sound assets.
-	static ConstructorHelpers::FObjectFinder<USoundCue> ClickSound_Asset(TEXT("SoundCue'/Game/Sounds/SC_Click.SC_Click'"));
-	check(ClickSound_Asset.Succeeded())
-	ClickSound = ClickSound_Asset.Object;
-
-	static ConstructorHelpers::FObjectFinder<USoundCue> CycleClickSound_Asset(TEXT("SoundCue'/Game/Sounds/SC_CycleClicks.SC_CycleClicks'"));
-	check(CycleClickSound_Asset.Succeeded())
-	CycleClickSound = ClickSound_Asset.Object;
 
 	// Create timelines
 	MovementTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("MovementTimeline"));
@@ -108,6 +73,9 @@ void ATTBButton::SetTubeExtensionTLCallback(float Val)
 
 void ATTBButton::MoveButton(FTransform TargetTransform)
 {
+	if (!LinearCurve)
+		return;
+
 	PlaySound(CycleClickSound);
 	MoveTargetXForm = TargetTransform;
 
@@ -138,6 +106,9 @@ void ATTBButton::MoveButtonFinishedCallback()
 
 void ATTBButton::ChangeColor(EColorFunction InColorFunction)
 {
+	if (!BlinkCurve || !BlinkAndHoldCurve || !LinearReverseCurve || !LinearCurve)
+		return;
+
 	UCurveFloat* Curve = BlinkCurve;
 
 	Curve =
@@ -181,7 +152,7 @@ void ATTBButton::PressButton()
 	FOnTimelineFloat tickCallback{};	// Called on each tick of the timeline
 	tickCallback.BindUFunction(this, FName{ TEXT("PressButtonTickCallback") });
 
-	MovementTimeline->AddInterpFloat(ValleyCurve, tickCallback, FName{ TEXT("MovementAnimation") });
+	MovementTimeline->AddInterpFloat(ButtonPressCurve, tickCallback, FName{ TEXT("MovementAnimation") });
 	MovementTimeline->PlayFromStart();
 }
 

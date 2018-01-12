@@ -28,22 +28,22 @@ protected:
 	class UTimelineComponent* PressButtonTimeline;
 
 	/* Timeline Curves */
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly)
 	class UCurveFloat* LinearCurve;
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly)
 	class UCurveFloat* BlinkCurve;
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly)
 	class UCurveFloat* BlinkAndHoldCurve;
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly)
 	class UCurveFloat* LinearReverseCurve;
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly)
 	class UCurveFloat* SlowFadeOutCurve;
-	UPROPERTY()
-	class UCurveFloat* ValleyCurve;
+	UPROPERTY(EditDefaultsOnly)
+	class UCurveFloat* ButtonPressCurve;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UPROPERTY(EditDefaultsOnly)
 		class USoundBase* ClickSound;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UPROPERTY(EditDefaultsOnly)
 		class USoundBase* CycleClickSound;
 
 public:
@@ -51,8 +51,6 @@ public:
 	bool bIsPlaceholder;
 
 protected:
-	UPROPERTY(EditDefaultsOnly)
-	float BlinkTime;
 	UPROPERTY(EditDefaultsOnly)
 	float RetractedButtonZ;
 
