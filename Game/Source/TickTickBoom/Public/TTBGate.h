@@ -10,20 +10,25 @@ class TICKTICKBOOM_API ATTBGate : public AActor
 	GENERATED_BODY()
 
 public:
+	class USceneComponent* RootComp;
+
+	UPROPERTY(VisibleAnywhere)
+	class UStaticMeshComponent* GateMesh;
+
 	UPROPERTY(BlueprintReadWrite)
 	class ATTBGameBoard* Gameboard;
+
+	class UTimelineComponent* FlipGateTimeline;
+
+	UPROPERTY(EditDefaultsOnly)
+	class UCurveFloat* FlipGateCurve;
 
 	// Sets default values for this actor's properties
 	ATTBGate();
 
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
 public:
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
-	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
-	void PlayGateAnim();
+	/* Animate the gate opening and closing */
+	void FlipGate();
+	UFUNCTION()
+		void FlipGateTLCallback(float Val);
 };

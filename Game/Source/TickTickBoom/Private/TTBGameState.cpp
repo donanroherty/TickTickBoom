@@ -19,14 +19,23 @@ ATTBGameState::ATTBGameState()
 	BoardSpacing = 20.f;
 	MaxShortCircuits = 3;
 	AvailableShortCircuits = MaxShortCircuits;
-
-	static ConstructorHelpers::FObjectFinder<UDataTable> GameboardData_BP(TEXT("DataTable'/Game/Blueprint/Data/Gameboard_DataTable.Gameboard_DataTable'"));
-	GameStageData = GameboardData_BP.Object;
 }
 
-void ATTBGameState::PostActorConstruction()
+void ATTBGameState::BeginPlay()
 {
-	AvailableShortCircuits = MaxShortCircuits;
+	if (!GameStageData)
+		return;
+
+	// Spawn all gameboards
+	SpawnGameboards();
+
+	// Set camera focus to the gameboard
+	ATTBPlayerController* PC = Cast<ATTBPlayerController>(GetWorld()->GetFirstPlayerController());
+	if (PC)
+		PC->SetCameraFocusTarget(GetGameBoard());
+
+	// Wait 3 seconds and start the first stage
+	GetWorldTimerManager().SetTimer(StartGameTimer, this, &ATTBGameState::StartCurrentStage, 3.f, false);
 }
 
 void ATTBGameState::TogglePauseGame()
@@ -54,19 +63,7 @@ void ATTBGameState::TogglePauseGame()
 	}
 }
 
-void ATTBGameState::BeginPlay()
-{
-	// Spawn all gameboards
-	SpawnGameboards();
 
-	// Set camera focus to the gameboard
-	ATTBPlayerController* PC = Cast<ATTBPlayerController>(GetWorld()->GetFirstPlayerController());
-	if (PC)
-		PC->SetCameraFocusTarget(GetGameBoard());
-
-	// Wait 3 seconds and start the first stage
-	GetWorldTimerManager().SetTimer(StartGameTimer, this, &ATTBGameState::StartCurrentStage, 3.f, false);
-}
 
 void ATTBGameState::StartCurrentStage()
 {

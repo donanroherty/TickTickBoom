@@ -19,34 +19,6 @@ ATTBGameBoard::ATTBGameBoard()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	//TODO: Revert to normal reference assignment in BP class.  Used ObjectFinder to prevent refs getting cleared by hot-reload.
-
-//	static ConstructorHelpers::FObjectFinder<UBlueprint> ButtonClass_Asset(TEXT("Blueprint'/Game/Blueprint/BP_Button.BP_Button'"));
-//	ButtonClass = ButtonClass_Asset.Object;
-	//static ConstructorHelpers::FObjectFinder<UBlueprint> GateClass_Asset(TEXT("Blueprint'/Game/Blueprint/BP_GateActor.BP_GateActor'"));
-	//GateClass = GateClass_Asset.Object;
-
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> CornerMesh_Asset(TEXT("StaticMesh'/Game/Meshes/SM_Corner.SM_Corner'"));
-	CornerMesh = CornerMesh_Asset.Object;
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> WallMesh_Asset(TEXT("StaticMesh'/Game/Meshes/SM_Wall.SM_Wall'"));
-	WallMesh = WallMesh_Asset.Object;
-
- 	static ConstructorHelpers::FObjectFinder<USoundCue> MachineNoises_Asset(TEXT("SoundCue'/Game/Sounds/SC_MachineNoises.SC_MachineNoises'"));
- 	MachineNoiseSound = MachineNoises_Asset.Object;
- 	static ConstructorHelpers::FObjectFinder<USoundCue> ExplosionSound_Asset(TEXT("SoundCue'/Game/Sounds/SC_Explosion.SC_Explosion'"));
- 	ExplosionSound = ExplosionSound_Asset.Object;
- 	static ConstructorHelpers::FObjectFinder<USoundCue> PlayerHurtSound_Asset(TEXT("SoundCue'/Game/Sounds/SC_Hurt.SC_Hurt'"));
- 	PlayerHurtSound = PlayerHurtSound_Asset.Object;
- 	static ConstructorHelpers::FObjectFinder<USoundCue> MachineWindDownSound_Asset(TEXT("SoundCue'/Game/Sounds/SC_WindDown.SC_WindDown'"));
- 	MachineWindDownSound = MachineWindDownSound_Asset.Object;
-
-//	static ConstructorHelpers::FObjectFinder<UParticleSystem> ExplosionParticles_Asset(TEXT("ParticleSystem'/Game/Particles/P_Explosion.P_Explosion'"));
-//	ExplosionParticles = ExplosionParticles_Asset.Object;
-// 	static ConstructorHelpers::FObjectFinder<UParticleSystem> SmokeParticles_Asset(TEXT("ParticleSystem'/Game/Particles/P_Smoke.P_Smoke'"));
-// 	SmokeParticles = SmokeParticles_Asset.Object;
-// 	static ConstructorHelpers::FObjectFinder<UParticleSystem> FireParticles_Asset(TEXT("ParticleSystem'/Game/Particles/P_Fire.P_Fire'"));
-// 	FireParticles = FireParticles_Asset.Object;
-
 	GameboardData.Cols = 3;
 	GameboardData.Rows = 3;
 	GameboardData.CycleCount = 10;
@@ -482,8 +454,8 @@ void ATTBGameBoard::SimulateCycle()
 			? ((SectionIdx + (GameboardData.Rows * 2)) + ((GameboardData.Cols - SectionIdx) * 2)) - 1
 			: ((SectionIdx + GameboardData.Cols) + (((GameboardData.Rows - 1) - SectionIdx) * 2)) + 1;
 
-		Gates[Gate1Idx]->PlayGateAnim();
-		Gates[Gate2Idx]->PlayGateAnim();
+		Gates[Gate1Idx]->FlipGate();
+		Gates[Gate2Idx]->FlipGate();
 	}
 
 	if (CycleIteration >= GameboardData.CycleCount)
