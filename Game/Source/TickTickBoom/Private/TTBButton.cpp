@@ -36,7 +36,7 @@ ATTBButton::ATTBButton()
 	Button = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Button"));
 	Button->AttachToComponent(Tube, FAttachmentTransformRules::KeepRelativeTransform);
 
-	//Button->OnClicked.AddUniqueDynamic(this, &ATTBButton::OnButtonClicked);
+	Button->OnClicked.AddUniqueDynamic(this, &ATTBButton::OnButtonClicked);
 
 	static ConstructorHelpers::FObjectFinder<UCurveFloat> LinearCurve_Asset(TEXT("CurveFloat'/Game/Curves/Linear_Curve.Linear_Curve'"));
 	check(LinearCurve_Asset.Succeeded());
@@ -183,10 +183,12 @@ void ATTBButton::SetColorTLCallback(float Val)
 }
 
 void ATTBButton::HandlePressButtonTL()
-{
-	// Immediately deactivate all buttons so player cant click multiple buttons
-	if (bIsActive)
-		Gameboard->DeactivateButtons();
+{	
+	if (!Gameboard->bButtonsActive)
+		return;
+
+	// Immediately deactivate all buttons so player cant click multiple buttons	
+	Gameboard->SetButtonsActive(false);
 
 	FOnTimelineEventStatic finishedCallback{};	// Called when the timeline completes
 	finishedCallback.BindUFunction(this, FName{ TEXT("OnPressButtonFinishedCallback") });
@@ -210,10 +212,10 @@ void ATTBButton::OnPressButtonFinishedCallback()
 	Gameboard->ButtonClicked(this);
 }
 
-// void ATTBButton::OnButtonClicked(UPrimitiveComponent* pComponent, FKey ButtonPressed)
-// {
-// 	HandlePressButton();
-// }
+void ATTBButton::OnButtonClicked(UPrimitiveComponent* pComponent, FKey ButtonPressed)
+{
+	HandlePressButtonTL();
+}
 
 UAudioComponent* ATTBButton::PlaySound(USoundBase* Sound)
 {

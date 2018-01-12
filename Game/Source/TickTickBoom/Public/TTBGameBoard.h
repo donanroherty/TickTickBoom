@@ -47,6 +47,8 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	bool bBoardIsActive;
 
+	bool bButtonsActive;
+
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
 	float ButtonSpacing;
 
@@ -194,10 +196,7 @@ public:
 	TArray<class ATTBButton*> GetAllButtons();
 
 	UFUNCTION(BlueprintCallable, Category = Buttons)
-	void ActivateButtons();
-
-	UFUNCTION(BlueprintCallable, Category = Buttons)
-	void DeactivateButtons();
+	void SetButtonsActive(bool bNewActive);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = Gameboard)
 	class ATTBHud* GetHud();

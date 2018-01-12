@@ -119,6 +119,6 @@ public:
 	UFUNCTION()
 		void OnPressButtonFinishedCallback();
 
-	//UFUNCTION()
-	//void OnButtonClicked(UPrimitiveComponent* pComponent, FKey ButtonPressed);
+	UFUNCTION()
+	void OnButtonClicked(UPrimitiveComponent* pComponent, FKey ButtonPressed);
 };

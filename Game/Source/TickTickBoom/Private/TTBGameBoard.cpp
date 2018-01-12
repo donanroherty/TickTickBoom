@@ -60,6 +60,7 @@ ATTBGameBoard::ATTBGameBoard()
 	CountdownSeconds = 3;
 	SafeButtonCycleBias = 2;
 	BoardState = EBoardState::BS_PreCycle;
+	bButtonsActive = false;
 
 	RootComp = CreateDefaultSubobject<USceneComponent>(TEXT("RootComp"));
 	SetRootComponent(RootComp);
@@ -181,8 +182,7 @@ void ATTBGameBoard::BuildGameboard()
 			NewGate->Gameboard = this;
 			NewGate->AttachToComponent(NewWallComp, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TEXT("Attach"));
 		}
-	}
-
+	}	
 	OnButtonGridUpdated.Broadcast();
 }
 
@@ -192,7 +192,7 @@ void ATTBGameBoard::OnShortCircuit()
 	
 	if (GM && GM->GetGameBoard() == this)
 	{
-		DeactivateButtons();
+		SetButtonsActive(false);
 		BeginPreCycle();
 	}
 }
@@ -205,7 +205,7 @@ void ATTBGameBoard::ActivateBoard()
 void ATTBGameBoard::DeactivateBoard()
 {
 	bBoardIsActive = false;
-	DeactivateButtons();
+	SetButtonsActive(false);
 }
 
 void ATTBGameBoard::BeginPreCycle()
@@ -222,7 +222,6 @@ void ATTBGameBoard::ChooseSafeButton()
 	{
 		NewSafeButton = GetRandButton();
 	}
-
 	SafeButton = NewSafeButton;
 
 	SafeButtonCurrentIteration++;
@@ -306,21 +305,11 @@ TArray<class ATTBButton*> ATTBGameBoard::GetAllButtons()
 	return Selection;
 }
 
-void ATTBGameBoard::ActivateButtons()
+void ATTBGameBoard::SetButtonsActive(bool bNewActive)
 {
-	for (ATTBButton* b : GetAllButtons())
-	{
-		b->SetActive(true);
-	}
+	bButtonsActive = bNewActive;
 }
 
-void ATTBGameBoard::DeactivateButtons()
-{
-	for (ATTBButton* b : GetAllButtons())
-	{
-		b->SetActive(false);
-	}
-}
 
 ATTBHud* ATTBGameBoard::GetHud()
 {	
@@ -512,7 +501,7 @@ void ATTBGameBoard::OnCycleComplete()
 	GetHud()->OnCycleComplete();
 	MachineNoiseAudioComp->FadeOut(1.f, 0.f);	// Stop machine noises
 
-	ActivateButtons();
+	SetButtonsActive(true);
 }
 
 void ATTBGameBoard::PrepCycle(ATTBButton* Button, EGridSectionType SectionType, EDirection Dir, bool bIsLeavingGrid)
@@ -587,7 +576,7 @@ UAudioComponent* ATTBGameBoard::PlaySound(USoundBase* Sound)
 
 void ATTBGameBoard::ButtonClicked(ATTBButton * ClickedButton)
 {
-	DeactivateButtons();
+	SetButtonsActive(false);
 
 	if (ClickedButton == SafeButton)
 	{
