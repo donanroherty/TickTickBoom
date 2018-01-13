@@ -14,6 +14,8 @@ public:
 
 	UPROPERTY(VisibleAnywhere)
 	class UStaticMeshComponent* GateMesh;
+	UPROPERTY(VisibleAnywhere)
+	class UPointLightComponent* InteriorLight;
 
 	UPROPERTY(BlueprintReadWrite)
 	class ATTBGameBoard* Gameboard;
