@@ -17,7 +17,7 @@ public:
 	UPROPERTY(VisibleAnywhere)
 	class UPointLightComponent* InteriorLight;
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadOnly)
 	class ATTBGameBoard* Gameboard;
 
 	ATTBGate();

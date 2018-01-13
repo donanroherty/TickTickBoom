@@ -565,5 +565,8 @@ void ATTBGameBoard::FailStage()
 
 	ATTBGameState* GS = Cast<ATTBGameState>(GetWorld()->GetGameState());
 	if (GS)
+	{
+		GS->OnGameFailed.Broadcast();
 		GetWorldTimerManager().SetTimer(DelayTimerHandle2, GS, &ATTBGameState::OnStageFailed, 2.f);
+	}
 }

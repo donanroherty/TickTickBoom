@@ -7,7 +7,7 @@
 #include "TTBGameState.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FShortCircuit);
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGameFailed);
 /**
  * 
  */
@@ -27,6 +27,9 @@ class ATTBGameState : public AGameStateBase
 	/* Called when the player short circuits the board */
 	UPROPERTY(BlueprintAssignable, BlueprintCallable)
 	FShortCircuit OnShortCircuit;
+	/* Called on game failure.  Used in level BP to dim lights */
+	UPROPERTY(BlueprintAssignable)
+	FGameFailed OnGameFailed;
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class ATTBGameBoard> GameboardClass;
