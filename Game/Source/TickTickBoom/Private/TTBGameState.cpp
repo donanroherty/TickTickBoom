@@ -171,16 +171,10 @@ void ATTBGameState::FailStage()
 
 void ATTBGameState::ShortCircuit()
 {
-	OnShortCircuit.Broadcast();
-	if (GetGameBoard())
+	if (AvailableShortCircuits > 0 && GetGameBoard()->BoardState == EBoardState::BS_PostCycle)
 	{
 		GetGameBoard()->OnShortCircuit();
-	}
-
-	ATTBGameState* GS = Cast<ATTBGameState>(GetWorld()->GetGameState());
-	if (GS && AvailableShortCircuits > 0 && GetGameBoard()->BoardState == EBoardState::BS_PostCycle)
-	{
-		GS->ShortCircuit();
+		OnShortCircuit.Broadcast();
 	}
 }
 

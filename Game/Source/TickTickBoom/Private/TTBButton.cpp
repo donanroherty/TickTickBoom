@@ -121,11 +121,9 @@ void ATTBButton::OnButtonClicked(UPrimitiveComponent* pComponent, FKey ButtonPre
 UAudioComponent* ATTBButton::PlaySound(USoundBase* Sound)
 {
 	UAudioComponent* AC = NULL;
-
 	if (Sound)
 	{
 		AC = UGameplayStatics::SpawnSoundAttached(Sound, GetRootComponent());
 	}
-
 	return AC;
 }

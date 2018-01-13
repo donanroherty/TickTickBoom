@@ -150,13 +150,8 @@ void ATTBGameBoard::BuildGameboard()
 
 void ATTBGameBoard::OnShortCircuit()
 {
-	ATTBGameState* GS = Cast<ATTBGameState>(GetWorld()->GetGameState());
-
-	if (GS && GS->GetGameBoard() == this)
-	{
-		SetButtonsActive(false);
-		BeginPreCycle();
-	}
+	SetButtonsActive(false);
+	BeginPreCycle();	
 }
 
 void ATTBGameBoard::ActivateBoard()

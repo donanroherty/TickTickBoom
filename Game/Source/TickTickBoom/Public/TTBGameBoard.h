@@ -13,11 +13,11 @@ class TICKTICKBOOM_API ATTBGameBoard : public AActor
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UPROPERTY()
 	class USceneComponent* RootComp;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere)
 	class UAudioComponent* MachineNoiseAudioComp;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere)
 	class USpotLightComponent* SpotLight;
 
 	/* Data used to build the gameboard */
@@ -29,21 +29,15 @@ public:
 	TArray<class ATTBGate*> Gates;
 	TArray<FButtonGrid> ButtonsGrid;
 
-	bool bBoardIsActive;
-	bool bButtonsActive;
-	EBoardState BoardState;
-	int32 ButtonChoiceIteration;
-	int32 CycleIteration;
-
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly)
 	float ButtonSpacing;
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly)
 	float ButtonHeight;
 	UPROPERTY(BlueprintReadWrite)
 	int32 ButtonChoiceMaxIterations;
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly)
 	int32 CountdownSeconds;
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly)
 	int32 SafeButtonCycleBias;
 
 	// Geometry
@@ -73,6 +67,15 @@ public:
 	class UParticleSystem* SmokeParticles;
 	UPROPERTY(EditDefaultsOnly)
 	class UParticleSystem* FireParticles;
+
+public:
+	bool bButtonsActive;
+	EBoardState BoardState;
+
+private:
+	bool bBoardIsActive;
+	int32 ButtonChoiceIteration;
+	int32 CycleIteration;
 
 	// Timer handles
 	FTimerHandle BeginCycleTimerHandle;
