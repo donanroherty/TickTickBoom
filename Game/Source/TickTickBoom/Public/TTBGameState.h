@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "TickTickBoom.h"
 #include "GameFramework/GameStateBase.h"
 #include "TTBGameState.generated.h"
 

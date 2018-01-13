@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "TickTickBoom.h"
 #include "Engine/GameInstance.h"
 #include "TTBGameInstance.generated.h"
 

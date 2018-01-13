@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "TickTickBoom.h"
 #include "GameFramework/Actor.h"
 #include "Engine/DataTable.h"
 #include "TTBTypes.generated.h"
