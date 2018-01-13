@@ -129,7 +129,6 @@ void ATTBGameBoard::BuildGameboard()
 			NewWallComp->SetRelativeRotation(CornerSocketXform.GetRotation());
 			NewWallComp->SetRelativeScale3D(CornerSocketXform.GetScale3D());
 
-
 			// Make gates
 			if (GateClass)
 			{
