@@ -41,9 +41,10 @@ class ATTBGameState : public AGameStateBase
 	UPROPERTY(EditDefaultsOnly)
 	float BoardSpacing;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	int32 CountdownSeconds;
 	UPROPERTY(EditDefaultsOnly)
 	int32 MaxShortCircuits;
-
 	UPROPERTY(BlueprintReadOnly)
 	int32 AvailableShortCircuits;
 

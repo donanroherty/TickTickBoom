@@ -13,6 +13,7 @@ class TICKTICKBOOM_API ATTBGameBoard : public AActor
 	GENERATED_BODY()
 
 public:
+	// Components
 	UPROPERTY()
 	class USceneComponent* RootComp;
 	UPROPERTY(VisibleAnywhere)
@@ -26,17 +27,22 @@ public:
 
 	/* The safe button the player should track and press */
 	class ATTBButton* SafeButton;
+	/* The gates surround the button grid */
 	TArray<class ATTBGate*> Gates;
+	/* The grid of buttons on the gameboard */
 	TArray<FButtonGrid> ButtonsGrid;
 
+	/* Distance between buttons.  Should equate to the dimensions of the button mesh */
 	UPROPERTY(EditDefaultsOnly)
 	float ButtonSpacing;
+	/* Z position of a button when on the grid */
 	UPROPERTY(EditDefaultsOnly)
 	float ButtonHeight;
+
+	/* The number of loops when selecting a random safe button */
 	UPROPERTY(BlueprintReadWrite)
 	int32 ButtonChoiceMaxIterations;
-	UPROPERTY(EditDefaultsOnly)
-	int32 CountdownSeconds;
+	/* How many attempts to try select a section with the safe button in it */
 	UPROPERTY(EditDefaultsOnly)
 	int32 SafeButtonCycleBias;
 

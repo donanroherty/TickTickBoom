@@ -29,7 +29,6 @@ ATTBGameBoard::ATTBGameBoard()
 	ButtonSpacing = 10.f;
 	ButtonHeight = 10.f;
 	ButtonChoiceMaxIterations = 20;
-	CountdownSeconds = 3;
 	SafeButtonCycleBias = 2;
 	BoardState = EBoardState::BS_PreCycle;
 	bButtonsActive = false;
@@ -470,12 +469,13 @@ void ATTBGameBoard::OnSafeButtonSet()
 		MachineNoiseAudioComp = PlaySound(MachineNoiseSound);
 		MachineNoiseAudioComp->FadeIn(1.f);
 	}
-
+	ATTBGameState* GS = Cast<ATTBGameState>(GetWorld()->GetGameState());
 	ATTBHud* Hud = Cast<ATTBHud>(GetWorld()->GetFirstPlayerController()->GetHUD());
-	if(Hud)
-		Hud->BeginCountdown(CountdownSeconds);
-
-	GetWorldTimerManager().SetTimer(BeginCycleTimerHandle, this, &ATTBGameBoard::BeginCycle, CountdownSeconds);
+	if (GS && Hud)
+	{
+		Hud->BeginCountdown(GS->CountdownSeconds);
+		GetWorldTimerManager().SetTimer(BeginCycleTimerHandle, this, &ATTBGameBoard::BeginCycle, GS->CountdownSeconds);
+	}	
 }
 
 void ATTBGameBoard::BeginCycle()

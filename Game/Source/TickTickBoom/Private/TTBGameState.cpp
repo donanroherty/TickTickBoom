@@ -17,6 +17,7 @@ ATTBGameState::ATTBGameState()
 	bIsPaused = false;
 	CurrentStage = 0;
 	BoardSpacing = 20.f;
+	CountdownSeconds = 3;
 	MaxShortCircuits = 3;
 	AvailableShortCircuits = MaxShortCircuits;
 }
