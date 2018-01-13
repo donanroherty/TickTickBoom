@@ -4,6 +4,7 @@
 #include "TTBCameraActor.h"
 #include "TTBHud.h"
 #include "TTBGameState.h"
+#include "TTBGameBoard.h"
 #include "Runtime/Engine/Classes/Engine/World.h"
 
 void ATTBPlayerController::SetupInputComponent()
@@ -17,10 +18,10 @@ void ATTBPlayerController::SetupInputComponent()
 
 void ATTBPlayerController::BeginPlay()
 {
-	SpawnCamera();
+	
 }
 
-void ATTBPlayerController::SpawnCamera()
+void ATTBPlayerController::Inititialize()
 {
 	if (!CameraActorClass)
 	{
@@ -34,7 +35,12 @@ void ATTBPlayerController::SpawnCamera()
 	CameraActor = GetWorld()->SpawnActor<ATTBCameraActor>(CameraActorClass, SpawnInfo);
 
 	SetViewTargetWithBlend(CameraActor);
-	
+
+	ATTBGameState* GS = Cast<ATTBGameState>(GetWorld()->GetGameState());
+	if (GS)
+	{
+		SetCameraFocusTarget(GS->GetGameBoard());
+	}
 }
 
 void ATTBPlayerController::SetCameraFocusTarget(AActor* TargetActor)

@@ -33,7 +33,9 @@ void ATTBGameState::BeginPlay()
 	// Set camera focus to the gameboard
 	ATTBPlayerController* PC = Cast<ATTBPlayerController>(GetWorld()->GetFirstPlayerController());
 	if (PC)
-		PC->SetCameraFocusTarget(GetGameBoard());
+	{
+		PC->Inititialize();
+	}
 
 	// Wait 3 seconds and start the first stage
 	GetWorldTimerManager().SetTimer(StartGameTimer, this, &ATTBGameState::StartCurrentStage, 3.f, false);

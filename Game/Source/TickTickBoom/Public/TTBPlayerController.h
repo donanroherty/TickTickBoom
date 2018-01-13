@@ -31,8 +31,8 @@ public:
 
 	void BeginPlay();
 
-	/* Spawns a new camera actor and sets it as the viewtarget */
-	void SpawnCamera();
+	/* Sets up the camera.  Called by gamestate */
+	void Inititialize();
 
 	UFUNCTION(BlueprintCallable)
 	void SetCameraFocusTarget(AActor* TargetActor);
