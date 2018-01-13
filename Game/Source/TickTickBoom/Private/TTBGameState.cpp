@@ -63,8 +63,6 @@ void ATTBGameState::TogglePauseGame()
 	}
 }
 
-
-
 void ATTBGameState::StartCurrentStage()
 {
 	// Show tutorial?
