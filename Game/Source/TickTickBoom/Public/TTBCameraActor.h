@@ -10,17 +10,44 @@ class TICKTICKBOOM_API ATTBCameraActor : public AActor
 	GENERATED_BODY()
 	
 public:	
-	// Sets default values for this actor's properties
 	ATTBCameraActor();
 
+	UPROPERTY()
+	class USceneComponent* RootComp;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	class USpringArmComponent* SpringArm;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	class UCameraComponent* Camera;
+
+	UPROPERTY(EditDefaultsOnly)
+	float CameraPitch;
+
+	UPROPERTY(BlueprintReadOnly)
+	AActor* TargetActor;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float ZoomMargin;
+
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 public:	
-	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
-	void SetFocusTarget(AActor* TargetActor);
+	UFUNCTION(BlueprintCallable)
+	void UpdateCameraDistanceAndLocation(FBox2D BBox, float DeltaTime);
+
+	UFUNCTION(BlueprintCallable)
+	void SetFocusTarget(AActor* NewTargetActor);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	bool Get2DBoundingRectangle(AActor* InActor, FBox2D &OutBox);
+
+	bool GetTargetSpringArmLength(APlayerController* PlayerController, FBox2D BBox, float &OutLength);
+	bool GetTargetActorLocation(APlayerController* PlayerController, FBox2D BBox, FVector &OutLocation);
+
+	
+
+	/* Returns all points of the 3D bounding box */
+	TArray<FVector> GetBoundingBoxPoints(FVector Origin, FVector Extents);
 };
