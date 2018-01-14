@@ -9,9 +9,9 @@ https://youtu.be/AL5_Fe3GXqE
 UE4 Community livestream:
 https://youtu.be/LoH0fD1kcRo?t=28m37s
 
-Requires free Allegorithmics Substance plugin.
-
 Original blueprint version here:  https://github.com/donanroherty/TickTickBoomBP
+
+Requires free Allegorithmics Substance plugin.
 
 ![alt text](https://i.imgur.com/on6yZiF.png)
 
