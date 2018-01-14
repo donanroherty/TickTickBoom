@@ -139,7 +139,7 @@ void ATTBGameState::OnStageCompleteDialogDismissed()
 void ATTBGameState::OnStageSucess()
 {
 	// Wait 1 second before completing stage
-	GetWorldTimerManager().SetTimer(StartGameTimer, this, &ATTBGameState::CompleteStage, 1.f, false);
+	GetWorldTimerManager().SetTimer(StageSuccessTimer, this, &ATTBGameState::CompleteStage, 1.f, false);
 }
 
 void ATTBGameState::CompleteStage()
@@ -149,15 +149,19 @@ void ATTBGameState::CompleteStage()
 		GI->SetHighScore(CurrentStage + 1);
 
 	if (CurrentStage + 1 >= GetMaxStageCount())
-		GetWorldTimerManager().SetTimer(StartGameTimer, GetHud(), &ATTBHud::OnGameComplete, 2.f, false);
+	{
+		GetWorldTimerManager().SetTimer(GameCompleteShowHudTimer, GetHud(), &ATTBHud::OnGameComplete, 2.f, false);	
+	}
 	else
+	{
 		GetHud()->OnStageComplete();
+	}
 }
 
 void ATTBGameState::OnStageFailed()
 {
 	// Wait 3 seconds before failing game
-	GetWorldTimerManager().SetTimer(StartGameTimer, this, &ATTBGameState::FailStage, 3.f, false);
+	GetWorldTimerManager().SetTimer(StageFailedTimer, this, &ATTBGameState::FailStage, 3.f, false);
 }
 
 void ATTBGameState::FailStage()

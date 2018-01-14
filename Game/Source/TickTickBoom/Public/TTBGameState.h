@@ -57,6 +57,8 @@ class ATTBGameState : public AGameStateBase
 	FTimerHandle StartStageTimer;
 	FTimerHandle StageSuccessTimer;
 	FTimerHandle StageFailedTimer;
+	FTimerHandle GameCompleteShowHudTimer;
+	FTimerHandle GameCompleteTimer;
 
 	/* Constructor */
 	ATTBGameState();
