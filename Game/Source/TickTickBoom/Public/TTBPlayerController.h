@@ -29,8 +29,6 @@ public:
 	/* Set up player input */
 	virtual void SetupInputComponent() override;
 
-	void BeginPlay();
-
 	/* Sets up the camera.  Called by gamestate */
 	void Inititialize();
 

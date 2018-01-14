@@ -23,7 +23,7 @@ ATTBGate::ATTBGate()
 	InteriorLight->SetLightColor(FLinearColor::Red, true);
 	InteriorLight->SetAttenuationRadius(15.f);
 	InteriorLight->bAffectDynamicIndirectLighting = true;
-	InteriorLight->bUseRayTracedDistanceFieldShadows = true;
+	//InteriorLight->bUseRayTracedDistanceFieldShadows = true;
 }
 
 void ATTBGate::FlipGate()

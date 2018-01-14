@@ -16,11 +16,6 @@ void ATTBPlayerController::SetupInputComponent()
 	togglePause.bExecuteWhenPaused = true;
 }
 
-void ATTBPlayerController::BeginPlay()
-{
-	
-}
-
 void ATTBPlayerController::Inititialize()
 {
 	if (!CameraActorClass)

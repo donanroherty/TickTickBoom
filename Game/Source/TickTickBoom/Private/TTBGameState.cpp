@@ -68,10 +68,10 @@ void ATTBGameState::TogglePauseGame()
 
 void ATTBGameState::StartCurrentStage()
 {
-	// Show tutorial?
+	// Show tutorial
 	UTTBGameInstance* GI = Cast<UTTBGameInstance>(GetGameInstance());
-	//if (CurrentStage == 0 && GI && !GI->bHideTutorial)
-	//GetHud()->ShowTutorial();
+	if (CurrentStage == 0 && GI && !GI->bHideTutorial)
+		GetHud()->ShowTutorial();
 
 	// Set camera focus to the gameboard
 	ATTBPlayerController* PC = Cast<ATTBPlayerController>(GetWorld()->GetFirstPlayerController());
