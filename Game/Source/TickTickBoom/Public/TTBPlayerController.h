@@ -32,10 +32,13 @@ public:
 	/* Sets up the camera.  Called by gamestate */
 	void Inititialize();
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void SetCameraFocusTarget(AActor* TargetActor);
 
 	UFUNCTION(BlueprintCallable)
 	void TogglePauseGame();
 
+	/* Debug funciton to auto-clear a stage */
+	UFUNCTION()
+	void DebugClearStage();
 };

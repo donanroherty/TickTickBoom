@@ -126,7 +126,7 @@ void ATTBGameState::SpawnGameboards()
 	}
 }
 
-void ATTBGameState::IncrementStage()
+void ATTBGameState::OnStageCompleteDialogDismissed()
 {
 	//Deactivate previous board if it exists
 	if (GetGameBoard())
@@ -134,11 +134,6 @@ void ATTBGameState::IncrementStage()
 
 	CurrentStage++;
 	StartCurrentStage();
-}
-
-void ATTBGameState::OnStageCompleteDialogDismissed()
-{
-	IncrementStage();
 }
 
 void ATTBGameState::OnStageSucess()
@@ -153,8 +148,8 @@ void ATTBGameState::CompleteStage()
 	if (GI)
 		GI->SetHighScore(CurrentStage + 1);
 
-	if (CurrentStage + 1 > GetMaxStageCount())
-		GetHud()->OnGameComplete();
+	if (CurrentStage + 1 >= GetMaxStageCount())
+		GetWorldTimerManager().SetTimer(StartGameTimer, GetHud(), &ATTBHud::OnGameComplete, 2.f, false);
 	else
 		GetHud()->OnStageComplete();
 }

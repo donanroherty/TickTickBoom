@@ -499,6 +499,7 @@ void ATTBGameBoard::OnCycleComplete()
 	MachineNoiseAudioComp->FadeOut(1.f, 0.f);	// Stop machine noises
 
 	SetButtonsActive(true);
+
 }
 
 FVector ATTBGameBoard::GetNewButtonLoc(ATTBButton * Button, EGridSectionType SectionType, EDirection Dir)

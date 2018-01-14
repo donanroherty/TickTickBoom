@@ -76,9 +76,6 @@ class ATTBGameState : public AGameStateBase
 
 	/* Begin the next stage on stage complete */
 	UFUNCTION(BlueprintCallable)
-	void IncrementStage();
-
-	UFUNCTION(BlueprintCallable)
 	void OnStageCompleteDialogDismissed();
 
 	/* Called when the correct button is pressed */
