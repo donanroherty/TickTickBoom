@@ -337,7 +337,7 @@ void ATTBGameBoard::SimulateCycle()
 	for (int32 SectionIdx : SelectedSections)
 	{
 		// Get  random cycle direction
-		EDirection CycleDirection = FMath::RandBool() == true ? EDirection::MD_Forward : EDirection::MD_Forward;
+		EDirection CycleDirection = FMath::RandBool() == true ? EDirection::MD_Forward : EDirection::MD_Backward;
 		// Get the buttons in the section
 		TArray<ATTBButton*> CycleButtons = CycleType == EGridSectionType::GST_Column ? GetColumn(SectionIdx) : GetRow(SectionIdx);
 
