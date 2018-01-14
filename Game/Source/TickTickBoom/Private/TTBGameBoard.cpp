@@ -149,6 +149,8 @@ void ATTBGameBoard::BuildGameboard()
 void ATTBGameBoard::OnShortCircuit()
 {
 	SetButtonsActive(false);
+	PlaySound(ShortCircuitSound);
+	UGameplayStatics::SpawnEmitterAttached(SparksParticles, SafeButton->GetRootComponent(), TEXT("None"), FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget);
 	BeginPreCycle();	
 }
 

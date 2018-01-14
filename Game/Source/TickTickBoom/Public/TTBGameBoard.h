@@ -66,6 +66,8 @@ public:
 	class USoundBase* PlayerHurtSound;
 	UPROPERTY(EditDefaultsOnly)
 	class USoundBase* MachineWindDownSound;
+	UPROPERTY(EditDefaultsOnly)
+	class USoundBase* ShortCircuitSound;
 
 	// Effects
 	UPROPERTY(EditDefaultsOnly)
@@ -74,6 +76,8 @@ public:
 	class UParticleSystem* SmokeParticles;
 	UPROPERTY(EditDefaultsOnly)
 	class UParticleSystem* FireParticles;
+	UPROPERTY(EditDefaultsOnly)
+	class UParticleSystem* SparksParticles;
 
 public:
 	bool bButtonsActive;
