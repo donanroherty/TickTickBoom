@@ -102,7 +102,7 @@ void ATTBGameState::SpawnGameboards()
 			if (NewBoard)
 			{
 				NewBoard->GameboardData = *Data;
-				NewBoard->BuildGameboard();
+				NewBoard->GenerateBoard();
 				Gameboards.Add(NewBoard);
 
 				if (i > 0)

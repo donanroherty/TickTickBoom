@@ -19,9 +19,9 @@ ATTBGameBoard::ATTBGameBoard()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	GameboardData.Cols = 3;
-	GameboardData.Rows = 3;
-	GameboardData.CycleCount = 10;
+	GameboardData.Cols = 2;
+	GameboardData.Rows = 2;
+	GameboardData.CycleCount = 2;
 	GameboardData.SectionsMovePerCycle = 1;
 	GameboardData.TimeScale = 1.0f;
 
@@ -46,8 +46,78 @@ ATTBGameBoard::ATTBGameBoard()
 	SpotLight->AttenuationRadius = 300.f;
 }
 
-void ATTBGameBoard::BuildGameboard()
+void ATTBGameBoard::OnConstruction(const FTransform& Transform)
 {
+
+}
+
+
+void ATTBGameBoard::GenerateBoard()
+{
+	for (int32 i = 0; i < 4; i++)
+	{
+		// Create corner component
+		FString NewCornerName = GetName() + "Corner_" + FString::FromInt(i);
+		UStaticMeshComponent* NewCornerComp = NewObject<UStaticMeshComponent>(this, FName(*NewCornerName));
+		NewCornerComp->SetupAttachment(this->GetRootComponent());
+		NewCornerComp->RegisterComponent();
+
+		if (CornerMesh)
+		{
+			NewCornerComp->SetStaticMesh(CornerMesh);
+		}
+
+		// Offset for the corner pieces
+		FVector LocOffset = i == 0 ? FVector(-1.f, -1.f, 0.f) : i == 1 ? FVector(1.f, -1.f, 0.f) : i == 2 ? FVector(1.f, 1.f, 0.f) : FVector(-1.f, 1.f, 0.f);
+
+		FVector CornerLoc = ((FVector(GetBoardLength(), GetBoardWidth(), 0) / 2.f) + (FVector(ButtonSpacing, ButtonSpacing, ButtonSpacing) / 2.f)) * LocOffset;
+
+ 		NewCornerComp->SetRelativeLocation(CornerLoc);
+		NewCornerComp->SetRelativeRotation(FRotator(0.f, 90.f * i, 0.f));
+
+
+
+		/*
+			Walls and gates
+		*/
+		float WallCount = i == 0 ? GameboardData.Rows : i == 1 ? GameboardData.Cols	: i == 2 ? GameboardData.Rows : GameboardData.Cols;
+
+		TArray<UStaticMeshComponent*> WallComps;
+
+		for (int32 j = 0; j < WallCount; j++)
+		{
+			// Make walls
+			FString NewWallName = NewCornerName + "-Wall_" + FString::FromInt(i) + "," + FString::FromInt(j);
+			UStaticMeshComponent* NewWallComp = NewObject<UStaticMeshComponent>(this, FName(*NewWallName));
+			NewWallComp->SetupAttachment(NewCornerComp, TEXT("Attach"));
+			NewWallComp->RegisterComponent();
+			WallComps.Add(NewWallComp);
+
+			if (WallMesh)
+			{
+				NewWallComp->SetStaticMesh(WallMesh);
+			}
+
+			FVector Offset = FVector::ZeroVector;
+
+			if (j > 0)
+			{
+				// Offset subsequent walls from first wall
+				UStaticMeshComponent* LastWall = WallComps[j - 1];
+				NewWallComp->SetRelativeLocation(LastWall->RelativeLocation + FVector(0.f, ButtonSpacing, 0.f));
+			}
+
+			FString NewGateName = NewWallName + "-Gate_" + FString::FromInt(i) + "," + FString::FromInt(j);
+			UChildActorComponent* NewGateComp = NewObject<UChildActorComponent>(this, FName(*NewGateName));
+			NewGateComp->SetupAttachment(NewWallComp, TEXT("Attach"));
+			NewGateComp->RegisterComponent();
+			NewGateComp->SetChildActorClass(GateClass);
+			ATTBGate* NewGateActor = Cast<ATTBGate>(NewGateComp->GetChildActor());
+			NewGateActor->Gameboard = this;
+			Gates.Add(NewGateActor);
+		}
+ 	}
+
 	// Create buttons
 	for (int32 col = 0; col < GameboardData.Cols; col++)	// Columns
 	{
@@ -55,95 +125,25 @@ void ATTBGameBoard::BuildGameboard()
 
 		for (int32 row = 0; row < GameboardData.Rows; row++)	// Rows
 		{
+			FString NewButtonName = GetName() + "-Btn_" + FString::FromInt(col) + "_" + FString::FromInt(row);
+			UChildActorComponent* NewButtonComp = NewObject<UChildActorComponent>(this, FName(*NewButtonName));
+			NewButtonComp->SetupAttachment(GetRootComponent());
+			NewButtonComp->RegisterComponent();
+			NewButtonComp->SetChildActorClass(ButtonClass);
+
 			FVector ButtonLoc = FVector((row * ButtonSpacing) - (GetBoardLength() / 2), (col * ButtonSpacing) - (GetBoardWidth() / 2), ButtonHeight);
+			NewButtonComp->SetRelativeLocation(ButtonLoc);
 
-			if(ButtonClass)
-			{
-				FTransform SpawnXForm;
-				ATTBButton* NewButt = GetWorld()->SpawnActorDeferred<ATTBButton>(ButtonClass, FTransform(FRotator::ZeroRotator, GetActorLocation()), this, GetInstigator(), ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
-				if (NewButt)
-				{
-					NewButt->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-					NewButt->SetActorRelativeLocation(ButtonLoc);
-					NewButt->Gameboard = this;
-
-					UGameplayStatics::FinishSpawningActor(NewButt, SpawnXForm);
-					NewRow.AddUnique(NewButt);
-				}
-			}
+			ATTBButton* NewButtonActor = Cast<ATTBButton>(NewButtonComp->GetChildActor());
+			NewButtonActor->Gameboard = this;
+			NewRow.AddUnique(NewButtonActor);
 		}
 
 		FButtonGrid Row;
 		Row.Rows = NewRow;
 		ButtonsGrid.Add(Row);
 	}
-
-	UE_LOG(LogTemp, Display, TEXT("%s"), *(this->GetName() + ": Buttons created - Cols: " + FString::FromInt(ButtonsGrid.Num()) + " Rows: " + FString::FromInt(ButtonsGrid[0].Rows.Num())));
-
-	for (int32 i = 0; i < 4; i++)
-	{
-		// Create corner component
-		UStaticMeshComponent* NewCornerComp = NewObject<UStaticMeshComponent>(this, FName(*("Corner_" + FString::FromInt(i))));
-		NewCornerComp->SetupAttachment(this->GetRootComponent());
-		NewCornerComp->RegisterComponent();
-
-		if (CornerMesh)
-			NewCornerComp->SetStaticMesh(CornerMesh);
-
-		// Offset for the corner pieces
-		FVector LocOffset =
-			i == 0 ? FVector(-1.f, -1.f, 0.f)	// Bottom left
-			: i == 1 ? FVector(1.f, -1.f, 0.f)	// Top left
-			: i == 2 ? FVector(1.f, 1.f, 0.f)	// Top right
-			: FVector(-1.f, 1.f, 0.f);			// Bottom right
-
-		FVector CornerLoc = ((FVector(GetBoardLength(), GetBoardWidth(), 0) / 2.f) + (FVector(ButtonSpacing, ButtonSpacing, ButtonSpacing) / 2.f)) * LocOffset;
-
-		NewCornerComp->SetRelativeLocation(CornerLoc);
-		NewCornerComp->SetRelativeRotation(FRotator(0.f, 90.f * i, 0.f));
-
-		/*
-			Walls and gates
-		*/
-		float WallCount =
-			i == 0 ? GameboardData.Rows		// Bottom left
-			: i == 1 ? GameboardData.Cols	// Top left
-			: i == 2 ? GameboardData.Rows	// Top right
-			: GameboardData.Cols;			// Bottom right
 	
-		for (int32 j = 0; j < WallCount; j++)
-		{
-			// Make walls
-			UStaticMeshComponent* NewWallComp = NewObject<UStaticMeshComponent>(this, FName(*("Wall_" + FString::FromInt(i) + "," + FString::FromInt(j))));
-			NewWallComp->SetupAttachment(this->GetRootComponent());
-			NewWallComp->RegisterComponent();
-
-			if (WallMesh)
-				NewWallComp->SetStaticMesh(WallMesh);
-
-			FTransform CornerSocketXform = NewCornerComp->GetSocketTransform(TEXT("Attach"), ERelativeTransformSpace::RTS_World);
-			FVector WallLoc = CornerSocketXform.GetLocation() + (FVector(CornerSocketXform.GetUnitAxis(EAxis::Y) * (ButtonSpacing * j)));
-
-			NewWallComp->SetRelativeLocation(WallLoc);
-			NewWallComp->SetRelativeRotation(CornerSocketXform.GetRotation());
-			NewWallComp->SetRelativeScale3D(CornerSocketXform.GetScale3D());
-
-			// Make gates
-			if (GateClass)
-			{
-				FTransform SpawnXForm;
-				ATTBGate* NewGate = GetWorld()->SpawnActorDeferred<ATTBGate>(GateClass, SpawnXForm, this, GetInstigator(), ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
-				if (NewGate)
-				{							
-					NewGate->Gameboard = this;
-					UGameplayStatics::FinishSpawningActor(NewGate, SpawnXForm);
-
-					NewGate->AttachToComponent(NewWallComp, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TEXT("Attach"));
-					Gates.Add(NewGate);
-				}
-			}
-		}
-	}	
 }
 
 void ATTBGameBoard::OnShortCircuit()

@@ -99,9 +99,11 @@ public:
 	// Sets default values for this actor's properties
 	ATTBGameBoard();
 
+	virtual void OnConstruction(const FTransform& Transform) override;
+
 public:
 	/* Build the gameboard to GameboardData spec */
-	void BuildGameboard();
+	void GenerateBoard();
 
 	/* Called when player tries to short circuit the board */
 	UFUNCTION()
