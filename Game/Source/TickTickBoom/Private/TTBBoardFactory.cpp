@@ -24,11 +24,11 @@ void ATTBBoardFactory::OnConstruction(const FTransform& Transform)
 		return;
 
 	// Destroy previously constructed components
-	for (UChildActorComponent* ca : GameboardComps)
+	for (int32 i = GameboardComps.Num() - 1; i > -1; i--)
 	{
-		ca->UnregisterComponent();
+		GameboardComps[i]->UnregisterComponent();
 	}
-
+	
 	int32 MaxStageCount = GameStageData->GetRowNames().Num();
 
 	// Spawn a gameboard for each stage defined in GameboardDataTable
@@ -36,8 +36,8 @@ void ATTBBoardFactory::OnConstruction(const FTransform& Transform)
 	{
 		// The data table rows are named by level number so we find the correct row for each gameboard we want to spawn here
 		FGameboardData* Data = GameStageData->FindRow<FGameboardData>(FName(*FString::FromInt(i)), TEXT("LookUp GameStageData"));
-
-		UChildActorComponent* NewBoardComp = NewObject<UChildActorComponent>(this);
+		FString BoardName = "Board_" + FString::FromInt(i);
+		UChildActorComponent* NewBoardComp = NewObject<UChildActorComponent>(this, FName(*BoardName));
 		NewBoardComp->SetupAttachment(GetRootComponent());
 		NewBoardComp->RegisterComponent();
 		NewBoardComp->SetChildActorClass(GameboardClass);

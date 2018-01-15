@@ -52,7 +52,8 @@ void ATTBGameBoard::GenerateBoard()
 	for (int32 i = 0; i < 4; i++)
 	{
 		// Create corner component
-		UStaticMeshComponent* NewCornerComp = NewObject<UStaticMeshComponent>(this);
+		FString NewCornerName = GetName() + "Corner_" + FString::FromInt(i);
+		UStaticMeshComponent* NewCornerComp = NewObject<UStaticMeshComponent>(this, FName(*NewCornerName));
 		NewCornerComp->SetupAttachment(this->GetRootComponent());
 		NewCornerComp->RegisterComponent();
 
@@ -81,7 +82,8 @@ void ATTBGameBoard::GenerateBoard()
 		for (int32 j = 0; j < WallCount; j++)
 		{
 			// Make walls
-			UStaticMeshComponent* NewWallComp = NewObject<UStaticMeshComponent>(this);
+			FString NewWallName = NewCornerName + "-Wall_" + FString::FromInt(i) + "," + FString::FromInt(j);
+			UStaticMeshComponent* NewWallComp = NewObject<UStaticMeshComponent>(this, FName(*NewWallName));
 			NewWallComp->SetupAttachment(NewCornerComp, TEXT("Attach"));
 			NewWallComp->RegisterComponent();
 			WallComps.Add(NewWallComp);
@@ -100,7 +102,8 @@ void ATTBGameBoard::GenerateBoard()
 				NewWallComp->SetRelativeLocation(LastWall->RelativeLocation + FVector(0.f, ButtonSpacing, 0.f));
 			}
 
-			UChildActorComponent* NewGateComp = NewObject<UChildActorComponent>(this);
+			FString NewGateName = NewWallName + "-Gate_" + FString::FromInt(i) + "," + FString::FromInt(j);
+			UChildActorComponent* NewGateComp = NewObject<UChildActorComponent>(this, FName(*NewGateName));
 			NewGateComp->SetupAttachment(NewWallComp, TEXT("Attach"));
 			NewGateComp->RegisterComponent();
 			NewGateComp->SetChildActorClass(GateClass);
@@ -118,7 +121,8 @@ void ATTBGameBoard::GenerateBoard()
 
 		for (int32 row = 0; row < GameboardData.Rows; row++)	// Rows
 		{
-			UChildActorComponent* NewButtonComp = NewObject<UChildActorComponent>(this);
+			FString NewButtonName = GetName() + "-Btn_" + FString::FromInt(col) + "_" + FString::FromInt(row);
+			UChildActorComponent* NewButtonComp = NewObject<UChildActorComponent>(this, FName(*NewButtonName));
 			NewButtonComp->SetupAttachment(GetRootComponent());
 			NewButtonComp->RegisterComponent();
 			NewButtonComp->SetChildActorClass(ButtonClass);
