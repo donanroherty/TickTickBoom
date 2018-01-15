@@ -1,15 +1,13 @@
 # TickTickBoom
 ### UE4 Gamejam winner January 2016
 
-Download Win64 build: https://1drv.ms/u/s!Arcuy-4Tl1Q4lN9dEVaTv6SpDOrTCA
+Download Win64 build: [OneDrive](https://1drv.ms/u/s!Arcuy-4Tl1Q4lN9dEVaTv6SpDOrTCA)
 
-Michael Allar playthrough:
-https://youtu.be/AL5_Fe3GXqE
+Latest build video:  [YouTube](https://youtu.be/62m1RrmMpTc)
 
-UE4 Community livestream:
-https://youtu.be/LoH0fD1kcRo?t=28m37s
+UE4 Community livestream:  [YouTube](https://youtu.be/LoH0fD1kcRo?t=28m37s)
 
-Original blueprint version here:  https://github.com/donanroherty/TickTickBoomBP
+Michael Allar playthrough:  [YouTube](https://youtu.be/AL5_Fe3GXqE)
 
 Requires free Allegorithmics Substance plugin.
 
