@@ -11,6 +11,8 @@
 #include "TTBHud.h"
 #include "TTBPlayerController.h"
 #include "TTBGameInstance.h"
+#include "EngineUtils.h"
+#include "TTBBoardFactory.h"
 
 ATTBGameState::ATTBGameState()
 {
@@ -27,8 +29,16 @@ void ATTBGameState::BeginPlay()
 	if (!GameStageData)
 		return;
 
-	// Spawn all gameboards
-	SpawnGameboards();
+	// Find the board factory in the level
+	for (TActorIterator<ATTBBoardFactory> ActorItr(GetWorld()); ActorItr; ++ActorItr)
+	{
+		if (*ActorItr)
+		{
+			BoardFactory = *ActorItr;
+		}
+	}
+	if (!BoardFactory)
+		return;
 
 	// Set camera focus to the gameboard
 	ATTBPlayerController* PC = Cast<ATTBPlayerController>(GetWorld()->GetFirstPlayerController());
@@ -82,48 +92,6 @@ void ATTBGameState::StartCurrentStage()
 
 	// Wait 2 seconds before starting the gameboard precycle
 	GetWorldTimerManager().SetTimer(StartGameTimer, GetGameBoard(), &ATTBGameBoard::BeginPreCycle, 2.f, false);
-}
-
-void ATTBGameState::SpawnGameboards()
-{
-	// Spawn a gameboard for each stage defined in GameboardDataTable
-	for (int32 i = 0; i < GetMaxStageCount(); i++)
-	{
-		// The data table rows are named by level number so we find the correct row for each gameboard we want to spawn here
-		FGameboardData* Data = GameStageData->FindRow<FGameboardData>(FName(*FString::FromInt(i)), TEXT("LookUp Operation"));
-
-		if (GameboardClass)
-		{
-			FActorSpawnParameters SpawnInfo;
-			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-			ATTBGameBoard* NewBoard = GetWorld()->SpawnActor<ATTBGameBoard>(GameboardClass, SpawnInfo);
-
-			if (NewBoard)
-			{
-				NewBoard->GameboardData = *Data;
-				NewBoard->GenerateBoard();
-				Gameboards.Add(NewBoard);
-
-				if (i > 0)
-				{
-					ATTBGameBoard* LastBoard = Gameboards[Gameboards.Num() - 2];
-
-					FVector LastOrigin, LastExtent, NewOrigin, NewExtent;
-					LastBoard->GetActorBounds(false, LastOrigin, LastExtent);
-					NewBoard->GetActorBounds(false, NewOrigin, NewExtent);
-
-					// Offset the location of the new board by the bounds of each board + BoardSpacing
-					FVector NewLoc = LastBoard->GetActorLocation() + FVector(0, LastExtent.Y + NewExtent.Y + BoardSpacing, 0);
-					NewBoard->SetActorLocation(NewLoc);
-				}
-			}
-		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT("GameboardClass not set in gamemode"));
-		}
-	}
 }
 
 void ATTBGameState::OnStageCompleteDialogDismissed()
@@ -180,7 +148,7 @@ void ATTBGameState::ShortCircuit()
 
 int32 ATTBGameState::GetMaxStageCount()
 {
-	return GameStageData->GetRowNames().Num();
+	return BoardFactory->GetMaxStageCount();
 }
 
 ATTBHud * ATTBGameState::GetHud()
@@ -196,13 +164,5 @@ ATTBHud * ATTBGameState::GetHud()
 
 ATTBGameBoard * ATTBGameState::GetGameBoard()
 {
-	if (Gameboards.Num() > CurrentStage)
-	{
-		return Gameboards[CurrentStage];
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("CurrentStage exceeds Gameboards array Num"));
-		return nullptr;
-	}
+	return BoardFactory->GetGameBoard();
 }

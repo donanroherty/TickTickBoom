@@ -35,6 +35,12 @@ class ATTBGameState : public AGameStateBase
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class ATTBGameBoard> GameboardClass;
 
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<class ATTBBoardFactory> BoardFactoryClass;
+
+	UPROPERTY(BlueprintReadWrite)
+	class ATTBBoardFactory* BoardFactory;
+
 	UPROPERTY(BlueprintReadOnly)
 	int32 CurrentStage;
 
@@ -71,10 +77,6 @@ class ATTBGameState : public AGameStateBase
 	/* Starts the active stage */
 	UFUNCTION(BlueprintCallable)
 	void StartCurrentStage();
-
-	/* Spawns all gameboards in a row from left to right */
-	UFUNCTION(BlueprintCallable)
-	void SpawnGameboards();
 
 	/* Begin the next stage on stage complete */
 	UFUNCTION(BlueprintCallable)

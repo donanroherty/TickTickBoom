@@ -26,12 +26,21 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	FGameboardData GameboardData;
 
+	/* The factory that created the board */
+	UPROPERTY(BlueprintReadOnly)
+	class ATTBBoardFactory* Factory;
+
 	/* The safe button the player should track and press */
+	UPROPERTY()
 	class ATTBButton* SafeButton;
 	/* The gates surround the button grid */
+	UPROPERTY()
 	TArray<class ATTBGate*> Gates;
 	/* The grid of buttons on the gameboard */
+	UPROPERTY()
 	TArray<FButtonGrid> ButtonsGrid;
+
+	
 
 	/* Distance between buttons.  Should equate to the dimensions of the button mesh */
 	UPROPERTY(EditDefaultsOnly)
@@ -96,10 +105,8 @@ private:
 	FTimerHandle CycleTimerHandle;
 
 public:	
-	// Sets default values for this actor's properties
-	ATTBGameBoard();
 
-	virtual void OnConstruction(const FTransform& Transform) override;
+	ATTBGameBoard();
 
 public:
 	/* Build the gameboard to GameboardData spec */

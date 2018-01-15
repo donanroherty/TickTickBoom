@@ -14,6 +14,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Runtime/CoreUObject/Public/UObject/ConstructorHelpers.h"
 #include "ParticleDefinitions.h"
+#include "TTBBoardFactory.h"
 
 ATTBGameBoard::ATTBGameBoard()
 {
@@ -46,19 +47,12 @@ ATTBGameBoard::ATTBGameBoard()
 	SpotLight->AttenuationRadius = 300.f;
 }
 
-void ATTBGameBoard::OnConstruction(const FTransform& Transform)
-{
-
-}
-
-
 void ATTBGameBoard::GenerateBoard()
 {
 	for (int32 i = 0; i < 4; i++)
 	{
 		// Create corner component
-		FString NewCornerName = GetName() + "Corner_" + FString::FromInt(i);
-		UStaticMeshComponent* NewCornerComp = NewObject<UStaticMeshComponent>(this, FName(*NewCornerName));
+		UStaticMeshComponent* NewCornerComp = NewObject<UStaticMeshComponent>(this);
 		NewCornerComp->SetupAttachment(this->GetRootComponent());
 		NewCornerComp->RegisterComponent();
 
@@ -87,8 +81,7 @@ void ATTBGameBoard::GenerateBoard()
 		for (int32 j = 0; j < WallCount; j++)
 		{
 			// Make walls
-			FString NewWallName = NewCornerName + "-Wall_" + FString::FromInt(i) + "," + FString::FromInt(j);
-			UStaticMeshComponent* NewWallComp = NewObject<UStaticMeshComponent>(this, FName(*NewWallName));
+			UStaticMeshComponent* NewWallComp = NewObject<UStaticMeshComponent>(this);
 			NewWallComp->SetupAttachment(NewCornerComp, TEXT("Attach"));
 			NewWallComp->RegisterComponent();
 			WallComps.Add(NewWallComp);
@@ -107,8 +100,7 @@ void ATTBGameBoard::GenerateBoard()
 				NewWallComp->SetRelativeLocation(LastWall->RelativeLocation + FVector(0.f, ButtonSpacing, 0.f));
 			}
 
-			FString NewGateName = NewWallName + "-Gate_" + FString::FromInt(i) + "," + FString::FromInt(j);
-			UChildActorComponent* NewGateComp = NewObject<UChildActorComponent>(this, FName(*NewGateName));
+			UChildActorComponent* NewGateComp = NewObject<UChildActorComponent>(this);
 			NewGateComp->SetupAttachment(NewWallComp, TEXT("Attach"));
 			NewGateComp->RegisterComponent();
 			NewGateComp->SetChildActorClass(GateClass);
@@ -118,6 +110,7 @@ void ATTBGameBoard::GenerateBoard()
 		}
  	}
 
+
 	// Create buttons
 	for (int32 col = 0; col < GameboardData.Cols; col++)	// Columns
 	{
@@ -125,8 +118,7 @@ void ATTBGameBoard::GenerateBoard()
 
 		for (int32 row = 0; row < GameboardData.Rows; row++)	// Rows
 		{
-			FString NewButtonName = GetName() + "-Btn_" + FString::FromInt(col) + "_" + FString::FromInt(row);
-			UChildActorComponent* NewButtonComp = NewObject<UChildActorComponent>(this, FName(*NewButtonName));
+			UChildActorComponent* NewButtonComp = NewObject<UChildActorComponent>(this);
 			NewButtonComp->SetupAttachment(GetRootComponent());
 			NewButtonComp->RegisterComponent();
 			NewButtonComp->SetChildActorClass(ButtonClass);
@@ -142,8 +134,7 @@ void ATTBGameBoard::GenerateBoard()
 		FButtonGrid Row;
 		Row.Rows = NewRow;
 		ButtonsGrid.Add(Row);
-	}
-	
+	}	
 }
 
 void ATTBGameBoard::OnShortCircuit()
