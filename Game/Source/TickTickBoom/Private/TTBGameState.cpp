@@ -26,6 +26,11 @@ ATTBGameState::ATTBGameState()
 
 void ATTBGameState::BeginPlay()
 {
+	
+}
+
+void ATTBGameState::OnBoardsGenerated()
+{
 	if (!GameStageData)
 		return;
 

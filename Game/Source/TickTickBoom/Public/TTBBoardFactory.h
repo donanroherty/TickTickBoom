@@ -37,7 +37,13 @@ public:
 	ATTBBoardFactory();
 
 protected:
+
 	virtual void OnConstruction(const FTransform& Transform) override;
+
+	virtual void BeginPlay() override;
+
+
+	void CreateBoards();
 
 public:
 	/* Returns the gameboard for the active level */

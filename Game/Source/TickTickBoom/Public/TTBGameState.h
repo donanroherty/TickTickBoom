@@ -71,6 +71,8 @@ class ATTBGameState : public AGameStateBase
 
 	virtual void BeginPlay()override;
 
+	void OnBoardsGenerated();
+
 	/* Toggles game pause state */
 	void TogglePauseGame();
 
