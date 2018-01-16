@@ -13,7 +13,10 @@ class TICKTICKBOOM_API ATTBBoardFactory : public AActor
 	
 public:
 	UPROPERTY()
-		class USceneComponent* RootComp;
+	class USceneComponent* RootComp;
+
+	UPROPERTY(VisibleAnywhere)
+		class UBillboardComponent* Marker;
 
 	class USceneComponent* BoardParent;
 

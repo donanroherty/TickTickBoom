@@ -31,9 +31,6 @@ void ATTBGameState::BeginPlay()
 
 void ATTBGameState::OnBoardsGenerated()
 {
-	if (!GameStageData)
-		return;
-
 	// Find the board factory in the level
 	for (TActorIterator<ATTBBoardFactory> ActorItr(GetWorld()); ActorItr; ++ActorItr)
 	{
@@ -42,7 +39,7 @@ void ATTBGameState::OnBoardsGenerated()
 			BoardFactory = *ActorItr;
 		}
 	}
-	if (!BoardFactory)
+	if (!BoardFactory || !BoardFactory->GameStageData)
 		return;
 
 	// Set camera focus to the gameboard

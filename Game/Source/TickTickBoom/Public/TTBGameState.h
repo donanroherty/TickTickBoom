@@ -17,10 +17,6 @@ class ATTBGameState : public AGameStateBase
 {
 	GENERATED_BODY()
 
-	/* The data table that defines each stages board attributes */
-	UPROPERTY(EditDefaultsOnly)
-	class UDataTable* GameStageData;
-
 	public:
 	/* Manages pause state of the game */
 	bool bIsPaused;

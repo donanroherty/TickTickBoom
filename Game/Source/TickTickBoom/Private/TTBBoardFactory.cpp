@@ -6,6 +6,7 @@
 #include "TTBGameBoard.h"
 #include "TTBGameState.h"
 #include "EngineUtils.h"
+#include "Components/BillboardComponent.h"
 
 // Sets default values
 ATTBBoardFactory::ATTBBoardFactory()
@@ -14,6 +15,10 @@ ATTBBoardFactory::ATTBBoardFactory()
 
 	RootComp = CreateDefaultSubobject<USceneComponent>(TEXT("RootComp"));
 	SetRootComponent(RootComp);
+
+	Marker = CreateDefaultSubobject<UBillboardComponent>(TEXT("Marker"));
+	Marker->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+	Marker->bHiddenInGame = true;
 }
 
 void ATTBBoardFactory::OnConstruction(const FTransform& Transform)
