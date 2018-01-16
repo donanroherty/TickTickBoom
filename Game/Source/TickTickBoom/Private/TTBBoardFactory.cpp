@@ -7,6 +7,7 @@
 #include "TTBGameState.h"
 #include "EngineUtils.h"
 #include "Components/BillboardComponent.h"
+#include "UObjectIterator.h"
 
 // Sets default values
 ATTBBoardFactory::ATTBBoardFactory()
@@ -23,13 +24,13 @@ ATTBBoardFactory::ATTBBoardFactory()
 
 void ATTBBoardFactory::OnConstruction(const FTransform& Transform)
 {
-	return; // TODO: Remove.  Temp flag to disable construction script while I figure out construction issue in editor.  Using BeginPlay in the meantime.
+	//return; // TODO: Remove.  Temp flag to disable construction script while I figure out construction issue in editor.  Using BeginPlay in the meantime.
 	CreateBoards();
 }
 
 void ATTBBoardFactory::BeginPlay()
 {
-	CreateBoards();
+	//CreateBoards();
 
 	ATTBGameState* GS = Cast<ATTBGameState>(GetWorld()->GetGameState());
 
@@ -41,15 +42,20 @@ void ATTBBoardFactory::BeginPlay()
 
 void ATTBBoardFactory::CreateBoards()
 {
-	bool bDebugBuildBoard = true;	//TODO: Remove this!
+	//return;	//TODO: Remove this!  For debug only to disable construction script
 
-	if (!GameStageData || !GameboardClass || !bDebugBuildBoard)
+	if (!GameStageData || !GameboardClass)
 		return;
 
-	// Destroy previously constructed components
-	for (int32 i = GameboardComps.Num() - 1; i > -1; i--)
+	// Destroy components created in last construction
+	for (TObjectIterator<UChildActorComponent> Itr; Itr; ++Itr)
 	{
-		GameboardComps[i]->DestroyComponent();
+		UChildActorComponent* CA = *Itr;
+
+		if (CA->GetChildActorClass() == ATTBGameBoard::StaticClass())
+		{
+			CA->UnregisterComponent();
+		}
 	}
 
 	int32 MaxStageCount = GameStageData->GetRowNames().Num();
@@ -59,6 +65,7 @@ void ATTBBoardFactory::CreateBoards()
 	{
 		// The data table rows are named by level number so we find the correct row for each gameboard we want to spawn here
 		FGameboardData* Data = GameStageData->FindRow<FGameboardData>(FName(*FString::FromInt(i)), TEXT("LookUp GameStageData"));
+
 		FString BoardName = "Board_" + FString::FromInt(i);
 		UChildActorComponent* NewBoardComp = NewObject<UChildActorComponent>(this, FName(*BoardName));
 		NewBoardComp->SetupAttachment(GetRootComponent());
